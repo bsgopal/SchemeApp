@@ -7,11 +7,12 @@ app.use(express.json());
 app.use(cors());
 
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || "localhost",
-  user: "root1",        // your MySQL username
-  password: "123456", // your MySQL password
-  database: "jewel_scheme"
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
 });
+
 
 db.connect(err => {
   if (err) throw err;
