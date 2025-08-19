@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">jewel-scheme-backend</string>
+    <string name="title_activity_main">jewel-scheme-backend</string>
+    <string name="package_name">com.scheme.app</string>
+    <string name="custom_url_scheme">com.scheme.app</string>
+</resources>
