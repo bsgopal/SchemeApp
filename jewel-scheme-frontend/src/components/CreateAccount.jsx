@@ -15,7 +15,8 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Select } from "@mui/material";
+import Select from "@mui/joy/Select";
+import Option from "@mui/joy/Option";
 
 function CreateAccount() {
   const navigate = useNavigate();
@@ -27,15 +28,18 @@ function CreateAccount() {
     titles: "",
     email: "",
     mobile: "",
-    address1: "",
+    address: "",
     state: "",
     city: "",
     pincode: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    nominee_name: "",
+    nominee_mobile: "",
+    nominee_relation: "",
   });
 
-  const [errors, setErrors] = React.useState({}); // ✅ new error state
+  const [errors, setErrors] = React.useState({});
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -44,7 +48,7 @@ function CreateAccount() {
       [name]: value || "",
     }));
 
-    // clear error once user starts typing
+    // Clear error
     setErrors((prev) => ({
       ...prev,
       [name]: "",
@@ -56,8 +60,9 @@ function CreateAccount() {
 
     if (!formData.titles) newErrors.titles = "Please select a title";
     if (!formData.firstname) newErrors.firstname = "Full name is required";
+    if (!formData.email) newErrors.email = "Email is required";
     if (!formData.mobile) newErrors.mobile = "Mobile number is required";
-    if (!formData.address1) newErrors.address1 = "Address is required";
+    if (!formData.address) newErrors.address = "Address is required";
     if (!formData.state) newErrors.state = "State is required";
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.pincode) newErrors.pincode = "Pincode is required";
@@ -68,20 +73,45 @@ function CreateAccount() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
+    // nominee validations
+    if (!formData.nominee_name) newErrors.nominee_name = "Nominee name is required";
+    if (!formData.nominee_mobile) newErrors.nominee_mobile = "Nominee mobile is required";
+    if (!formData.nominee_relation) newErrors.nominee_relation = "Nominee relation is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleRegister = async () => {
-    if (!validateForm()) return; // stop if validation fails
+    if (!validateForm()) return;
 
     try {
       const res = await axios.post("http://localhost:5000/register", formData);
-      alert(res.data.message);
-      navigate("/"); // redirect after success
+      console.log("Backend response:", res.data);
+
+      if (res.data.success) {
+        const userId = res.data.userId;
+        sessionStorage.setItem("tempUserId", userId);
+
+        const otpRes = await axios.post("http://localhost:5000/generate-otp", {
+          userId,
+          email: formData.email,
+        });
+
+        console.log("OTP sent:", otpRes.data.otp);
+
+        navigate("/otp", {
+          state: {
+            email: formData.email,
+            userId: userId,
+          },
+        });
+      } else {
+        alert(res.data.message || "Registration failed ❌");
+      }
     } catch (err) {
-      if (err.response && err.response.data?.message) {
-        alert(err.response.data.message); // server error message
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
       } else {
         alert("Registration failed ❌");
       }
@@ -131,33 +161,31 @@ function CreateAccount() {
       >
         {/* Title Dropdown */}
         <Select
+          placeholder="Title *"
+          defaultValue="Mr"
           labelId="titles-label"
           name="titles"
           value={formData.titles}
-          onChange={handleChange}
+          onChange={(_, value) =>
+            setFormData((prev) => ({ ...prev, titles: value }))
+          }
           sx={{
-            borderRadius: 2,
+            borderRadius: 3,
             backgroundColor: "rgba(255,255,255,0.8)",
-            px: 1,
+            px: 0.5,
             py: 0.5,
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: { borderRadius: 2 },
-            },
           }}
           error={!!errors.titles}
         >
-          <MenuItem value="Mr">Mr</MenuItem>
-          <MenuItem value="Mrs">Mrs</MenuItem>
-          <MenuItem value="Ms">Ms</MenuItem>
-          <MenuItem value="Dr">Dr</MenuItem>
-          <MenuItem value="Prof">Prof</MenuItem>
+          <Option value="Mr">Mr</Option>
+          <Option value="Mrs">Mrs</Option>
+          <Option value="Ms">Ms</Option>
+          <Option value="Dr">Dr</Option>
+          <Option value="Prof">Prof</Option>
         </Select>
-        {errors.titles && (
-          <FormHelperText error>{errors.titles}</FormHelperText>
-        )}
+        {errors.titles && <FormHelperText error>{errors.titles}</FormHelperText>}
 
+        {/* Fullname */}
         <TextField
           name="firstname"
           value={formData.firstname}
@@ -173,20 +201,24 @@ function CreateAccount() {
           }}
         />
 
+        {/* Email */}
         <TextField
           name="email"
           value={formData.email}
           onChange={handleChange}
           fullWidth
-          label="Email"
+          label="Email *"
           type="email"
           variant="filled"
+          error={!!errors.email}
+          helperText={errors.email}
           InputProps={{
             disableUnderline: true,
             sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
           }}
         />
 
+        {/* Mobile */}
         <TextField
           name="mobile"
           value={formData.mobile}
@@ -203,22 +235,23 @@ function CreateAccount() {
           }}
         />
 
+        {/* Address */}
         <TextField
-          name="address1"
-          value={formData.address1}
+          name="address"
+          value={formData.address}
           onChange={handleChange}
           fullWidth
-          label="Address1 *"
+          label="Address *"
           variant="filled"
-          error={!!errors.address1}
-          helperText={errors.address1}
+          error={!!errors.address}
+          helperText={errors.address}
           InputProps={{
             disableUnderline: true,
             sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
           }}
         />
 
-        {/* State Dropdown */}
+        {/* State */}
         <TextField
           select
           name="state"
@@ -238,6 +271,7 @@ function CreateAccount() {
           <MenuItem value="Kerala">Kerala</MenuItem>
         </TextField>
 
+        {/* City */}
         <TextField
           name="city"
           value={formData.city}
@@ -254,25 +288,71 @@ function CreateAccount() {
         />
 
         {/* Pincode */}
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <TextField
-            name="pincode"
-            value={formData.pincode}
-            onChange={handleChange}
-            fullWidth
-            label="Pincode *"
-            variant="filled"
-            error={!!errors.pincode}
-            helperText={errors.pincode}
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                borderRadius: 2,
-                backgroundColor: "rgba(255,255,255,0.8)",
-              },
-            }}
-          />
-        </Box>
+        <TextField
+          name="pincode"
+          value={formData.pincode}
+          onChange={handleChange}
+          fullWidth
+          label="Pincode *"
+          variant="filled"
+          error={!!errors.pincode}
+          helperText={errors.pincode}
+          InputProps={{
+            disableUnderline: true,
+            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+          }}
+        />
+
+        {/* Nominee Section */}
+        <Typography variant="h6" sx={{ mt: 2, color: "black" }}>
+          Nominee Details
+        </Typography>
+
+        <TextField
+          name="nominee_name"
+          value={formData.nominee_name}
+          onChange={handleChange}
+          fullWidth
+          label="Nominee Name *"
+          variant="filled"
+          error={!!errors.nominee_name}
+          helperText={errors.nominee_name}
+          InputProps={{
+            disableUnderline: true,
+            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+          }}
+        />
+
+        <TextField
+          name="nominee_mobile"
+          value={formData.nominee_mobile}
+          onChange={handleChange}
+          fullWidth
+          label="Nominee Mobile *"
+          type="tel"
+          variant="filled"
+          error={!!errors.nominee_mobile}
+          helperText={errors.nominee_mobile}
+          InputProps={{
+            disableUnderline: true,
+            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+          }}
+        />
+
+        <TextField
+          name="nominee_relation"
+          value={formData.nominee_relation}
+          onChange={handleChange}
+          fullWidth
+          label="Nominee Relation *"
+          variant="filled"
+          error={!!errors.nominee_relation}
+          helperText={errors.nominee_relation}
+          InputProps={{
+            disableUnderline: true,
+            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+          }}
+        />
 
         {/* Password */}
         <TextField
@@ -298,6 +378,7 @@ function CreateAccount() {
           }}
         />
 
+        {/* Confirm Password */}
         <TextField
           fullWidth
           label="Confirm Password *"
@@ -314,9 +395,7 @@ function CreateAccount() {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>

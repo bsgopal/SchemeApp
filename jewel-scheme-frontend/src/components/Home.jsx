@@ -101,7 +101,7 @@ const Home = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          px: 2,
+          // px: 2,
         }}
       >
         <IconButton

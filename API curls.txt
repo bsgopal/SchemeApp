@@ -1,0 +1,98 @@
+1. Register User
+
+bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "mobile": "9876543210",
+    "email": "john@example.com",
+    "password": "password123",
+    "branch_id": 1,
+    "address": "123 Main St",
+    "place": "City",
+    "pincode": "560001",
+    "dob": "1990-01-01",
+    "anniversary": "2015-05-20",
+    "aadhaar": "123456789012",
+    "pan": "ABCDE1234F",
+    "nominee_name": "Jane Doe",
+    "nominee_mobile": "9876543211",
+    "nominee_relation": "Wife"
+  }'
+2. Verify OTP
+
+bash
+curl -X POST http://localhost:5000/api/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 1,
+    "otp": "123456"
+  }'
+3. Login
+
+bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mobile": "9876543210",
+    "password": "password123"
+  }'
+4. Get All Branches
+
+bash
+curl -X GET "http://localhost:5000/api/branches?city=Bangalore&page=1&limit=10"
+5. Create Branch
+
+bash
+curl -X POST http://localhost:5000/api/branches \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "BLR001",
+    "name": "Bangalore Main",
+    "city": "Bangalore"
+  }'
+6. Get All Agents
+
+bash
+curl -X GET "http://localhost:5000/api/agents?area=South&user_id=2"
+7. Create Agent
+
+bash
+curl -X POST http://localhost:5000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 3,
+    "area": "North Zone",
+    "notes": "Senior Agent"
+  }'
+8. Get Scheme Groups
+
+bash
+curl -X GET "http://localhost:5000/api/scheme-groups?branch_id=1&group_code=GOLD&page=1&limit=20"
+9. Create Scheme Group
+
+bash
+curl -X POST http://localhost:5000/api/scheme-groups \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group_code": "GOLD001",
+    "description": "Gold Saving Scheme",
+    "amount_per_inst": 5000,
+    "no_of_members": 100,
+    "start_no": 1,
+    "no_of_inst": 12,
+    "is_flexible": true,
+    "is_gold_scheme": true,
+    "bonus": 1000,
+    "total_balance_amt": 500000,
+    "total_gold_balance": 1000,
+    "note": "Premium gold scheme",
+    "branch_id": 1,
+    "is_closed": false,
+    "sync_status": "synced"
+  }'
+10. Health Check
+
+bash
+curl -X GET http://localhost:5000/api/health

@@ -73,8 +73,6 @@
     alignItems: "center",
     position: "relative",
     color: "white",
-    px: 2,
-    pb: 4,
     overflow: "hidden",     // stop drag white space
   }}
 >
@@ -85,12 +83,12 @@
           sx={{
             position: "absolute",
             top: 16,
-            left: 12,
+            left: 5,
             color: "#fff",
             fontWeight: "bold",
-            textDecoration: "underline",
+            // textDecoration: "underline",
             // backgroundColor: "rgba(255,255,255,0.7)",
-            px: 1,
+            px: 3,
             borderRadius: "4px",
           }}
         >
@@ -98,7 +96,7 @@
         </Typography>
 
         {/* ✅ Logo top-right */}
-        <Box sx={{ position: "absolute", top: -120, right: -50 }}>
+        <Box sx={{ position: "absolute", top: -120, right: -60 }}>
           <img src={logo} alt="Renic Tech Logo" style={{ height: 300 }} />
         </Box>
 

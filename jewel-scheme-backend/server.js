@@ -1,80 +1,66 @@
-const express = require("express");
-const mysql = require("mysql2");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+// Import database connection
+import pool from "./config/db.js";
+
+// Import all route files
+import agentAssignmentsRoutes from "./routes/agentAssignments.js";
+import agentsRoutes from "./routes/agents.js"; // FIXED: removed apostrophe
+import auditLogsRoutes from "./routes/auditLogs.js";
+import authRoutes from "./routes/auth.js";
+import branchesRoutes from "./routes/branches.js";
+import otpRequestsRoutes from "./routes/otpRequests.js"; // FIXED: consistent naming
+import schemeGroupsRoutes from "./routes/schemeGroups.js";
+import schemeMembershipsRoutes from "./routes/schemeMemberships.js";
+import schemePaymentsRoutes from "./routes/schemePayments.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const db = mysql.createConnection({
-  host: process.env.DB_HOST || "localhost",
-  user: "root1",        // your MySQL username
-  password: "123456", // your MySQL password
-  database: "jewel_scheme"
-});
-
-db.connect(err => {
-  if (err) throw err;
-  console.log("✅ MySQL Connected...");
-});
-
-app.get("/", (req, res) => {
-  res.send("Jewel Saving Scheme API Running...");
-});
-
-
-app.post("/register", (req, res) => {
-  const { firstname, titles, email, mobile, address1, state, city, pincode, password } = req.body;
-
-  const checkQuery = "SELECT * FROM customers WHERE mobile = ?";
-  db.query(checkQuery, [mobile], (err, result) => {
-    if (err) {
-     console.error("❌ MySQL Error (insert):");
-        console.error("SQL Message:", err.sqlMessage);
-        console.error("Error Code:", err.code);
-        console.error("SQL State:", err.sqlState);
-        console.error("Full Error Object:", err);
-
-        return res.status(500).send({ message: "Server error", error: err.sqlMessage });
-    }
-
-    if (result.length > 0) {
-      return res.status(400).send({ message: "Mobile number already exists" });
-    }
-
-    const insertQuery = "INSERT INTO customers (firstname, titles, email, mobile, address1, state, city, pincode, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    db.query(insertQuery, [firstname, titles, email, mobile, address1, state, city, pincode, password], (err, result) => {
-      if (err) {
-        console.error("❌ MySQL Error (insert):", err);
-        return res.status(500).send({ message: "Server error" });
-      }
-      res.send({ message: "User registered successfully ✅", userId: result.insertId });
-    });
+// Test database connection
+pool.getConnection()
+  .then(connection => {
+    console.log("✅ MySQL Connected...");
+    connection.release();
+  })
+  .catch(error => {
+    console.error("❌ Database connection failed:", error);
+    process.exit(1);
   });
+
+// Attach all routers with appropriate base paths
+app.use("/api/agent-assignments", agentAssignmentsRoutes);
+app.use("/api/agents", agentsRoutes); // FIXED: removed apostrophe
+app.use("/api/audit-logs", auditLogsRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/branches", branchesRoutes);
+app.use("/api/otp-requests", otpRequestsRoutes); // ADDED: this was missing!
+app.use("/api/scheme-groups", schemeGroupsRoutes);
+app.use("/api/scheme-memberships", schemeMembershipsRoutes);
+app.use("/api/scheme-payments", schemePaymentsRoutes);
+
+// Basic health check route
+app.get("/", (req, res) => res.send("Jewel Saving Scheme API Running..."));
+app.get("/api/health", (req, res) => res.json({ status: "OK", message: "Server is running" }));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: "Something went wrong!", error: err.message });
 });
 
-
-
-//------------Login Api--------
-app.post("/login", (req, res) => {
-  const { mobile, password } = req.body;
-  const query = "SELECT * FROM customers WHERE mobile=? AND password=?";
-  db.query(query, [mobile, password], (err, result) => {
-    if (err) return res.status(500).send({ message: "Server error" });
-    if (result.length > 0) {
-      res.send({ 
-        message: "Login successful", 
-        success: true,
-        user: {
-        firstname: result[0].firstname,
-        mobile: result[0].mobile,
-        title: result[0].titles,
-      }
-      });
-    } else {
-      res.status(401).send({ message: "Invalid credentials" });
-    }
-  });
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
 });
 
-app.listen(5000, "0.0.0.0", () => console.log("🚀 Server running on port 5000 and accessible externally"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+export { pool };
