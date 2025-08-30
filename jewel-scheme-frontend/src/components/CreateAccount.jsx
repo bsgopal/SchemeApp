@@ -14,6 +14,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 import axios from "axios";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
@@ -23,9 +25,12 @@ function CreateAccount() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
+  // ✅ check role from session
+  const isSuperAdmin = sessionStorage.getItem("is_super_admin") === "1";
+
   const [formData, setFormData] = React.useState({
     firstname: "",
-    titles: "",
+    title: "",
     email: "",
     mobile: "",
     address: "",
@@ -37,9 +42,15 @@ function CreateAccount() {
     nominee_name: "",
     nominee_mobile: "",
     nominee_relation: "",
+    role: "",
   });
 
   const [errors, setErrors] = React.useState({});
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -58,14 +69,10 @@ function CreateAccount() {
   const validateForm = () => {
     let newErrors = {};
 
-    if (!formData.titles) newErrors.titles = "Please select a title";
+    if (!formData.title) newErrors.title = "Please select a title";
     if (!formData.firstname) newErrors.firstname = "Full name is required";
     if (!formData.email) newErrors.email = "Email is required";
     if (!formData.mobile) newErrors.mobile = "Mobile number is required";
-    if (!formData.address) newErrors.address = "Address is required";
-    if (!formData.state) newErrors.state = "State is required";
-    if (!formData.city) newErrors.city = "City is required";
-    if (!formData.pincode) newErrors.pincode = "Pincode is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Confirm Password is required";
@@ -73,10 +80,25 @@ function CreateAccount() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    // nominee validations
-    if (!formData.nominee_name) newErrors.nominee_name = "Nominee name is required";
-    if (!formData.nominee_mobile) newErrors.nominee_mobile = "Nominee mobile is required";
-    if (!formData.nominee_relation) newErrors.nominee_relation = "Nominee relation is required";
+    // ✅ Only validate these if NOT SuperAdmin
+    if (!isSuperAdmin) {
+      if (!formData.address) newErrors.address = "Address is required";
+      if (!formData.state) newErrors.state = "State is required";
+      if (!formData.city) newErrors.city = "City is required";
+      if (!formData.pincode) newErrors.pincode = "Pincode is required";
+
+      if (!formData.nominee_name)
+        newErrors.nominee_name = "Nominee name is required";
+      if (!formData.nominee_mobile)
+        newErrors.nominee_mobile = "Nominee mobile is required";
+      if (!formData.nominee_relation)
+        newErrors.nominee_relation = "Nominee relation is required";
+    }
+
+    // ✅ Validate role only if SuperAdmin
+    if (isSuperAdmin && !formData.role) {
+      newErrors.role = "Role is required";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -86,36 +108,79 @@ function CreateAccount() {
     if (!validateForm()) return;
 
     try {
-      const res = await axios.post("http://localhost:5000/register", formData);
+      const payload = {
+      ...formData,
+      isSuperAdminCreate: isSuperAdmin // Add this flag
+    };
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/register",
+        payload
+      );
       console.log("Backend response:", res.data);
 
       if (res.data.success) {
         const userId = res.data.userId;
         sessionStorage.setItem("tempUserId", userId);
 
-        const otpRes = await axios.post("http://localhost:5000/generate-otp", {
-          userId,
-          email: formData.email,
+        setSnackbar({
+          open: true,
+          message: isSuperAdmin
+            ? "User created successfully ✅"
+            : "Registered successfully ✅",
+          severity: "success",
         });
 
-        console.log("OTP sent:", otpRes.data.otp);
-
-        navigate("/otp", {
-          state: {
-            email: formData.email,
-            userId: userId,
-          },
-        });
+        // ✅ Stay on same page (do not navigate)
+        // Optionally reset form
+        setFormData({
+          firstname: "",
+          title: "",
+            email: "",
+            mobile: "",
+            address: "",
+            state: "",
+            city: "",
+            pincode: "",
+            password: "",
+            confirmPassword: "",
+            nominee_name: "",
+            nominee_mobile: "",
+            nominee_relation: "",
+            role: "",
+          });
+       
+          sessionStorage.setItem("tempUserId", userId);
+          navigate("/otp", {
+            state: {
+              email: formData.email,
+              userId: userId,
+              isSuperAdminCreate: isSuperAdmin 
+            },
+          });
+        
       } else {
-        alert(res.data.message || "Registration failed ❌");
+        setSnackbar({
+          open: true,
+          message: res.data.message || "Registration failed ❌",
+          severity: "error",
+        });
       }
     } catch (err) {
-      if (err.response?.data?.message) {
-        alert(err.response.data.message);
-      } else {
-        alert("Registration failed ❌");
-      }
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Registration failed ❌",
+        severity: "error",
+      });
       console.error(err);
+    }
+  };
+
+  const handleBack = () => {
+    const isLoggedIn = sessionStorage.getItem("role"); // if role exists, user is logged in
+    if (isLoggedIn) {
+      navigate("/Home");   // ✅ SuperAdmin/Admin/Agent/User → go back to Home
+    } else {
+      navigate("/");       // ✅ Not logged in → go back to Login
     }
   };
 
@@ -132,7 +197,7 @@ function CreateAccount() {
     >
       {/* Back Arrow */}
       <IconButton
-        onClick={() => navigate("/")}
+        onClick={handleBack}
         sx={{
           position: "fixed",
           top: 16,
@@ -162,12 +227,10 @@ function CreateAccount() {
         {/* Title Dropdown */}
         <Select
           placeholder="Title *"
-          defaultValue="Mr"
-          labelId="titles-label"
-          name="titles"
-          value={formData.titles}
+          name="title"
+          value={formData.title}
           onChange={(_, value) =>
-            setFormData((prev) => ({ ...prev, titles: value }))
+            setFormData((prev) => ({ ...prev, title: value }))
           }
           sx={{
             borderRadius: 3,
@@ -175,7 +238,7 @@ function CreateAccount() {
             px: 0.5,
             py: 0.5,
           }}
-          error={!!errors.titles}
+          error={!!errors.title}
         >
           <Option value="Mr">Mr</Option>
           <Option value="Mrs">Mrs</Option>
@@ -183,7 +246,7 @@ function CreateAccount() {
           <Option value="Dr">Dr</Option>
           <Option value="Prof">Prof</Option>
         </Select>
-        {errors.titles && <FormHelperText error>{errors.titles}</FormHelperText>}
+        {errors.title && <FormHelperText error>{errors.title}</FormHelperText>}
 
         {/* Fullname */}
         <TextField
@@ -235,124 +298,145 @@ function CreateAccount() {
           }}
         />
 
-        {/* Address */}
-        <TextField
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          fullWidth
-          label="Address *"
-          variant="filled"
-          error={!!errors.address}
-          helperText={errors.address}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+        {/* ✅ Show only if NOT SuperAdmin */}
+        {!isSuperAdmin && (
+          <>
+            <TextField
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              fullWidth
+              label="Address *"
+              variant="filled"
+              error={!!errors.address}
+              helperText={errors.address}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
 
-        {/* State */}
-        <TextField
-          select
-          name="state"
-          value={formData.state}
-          onChange={handleChange}
-          fullWidth
-          label="State *"
-          variant="filled"
-          error={!!errors.state}
-          helperText={errors.state}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        >
-          <MenuItem value="Tamilnadu">Tamilnadu</MenuItem>
-          <MenuItem value="Kerala">Kerala</MenuItem>
-        </TextField>
+            <TextField
+              select
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              fullWidth
+              label="State *"
+              variant="filled"
+              error={!!errors.state}
+              helperText={errors.state}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            >
+              <MenuItem value="Tamilnadu">Tamilnadu</MenuItem>
+              <MenuItem value="Kerala">Kerala</MenuItem>
+            </TextField>
 
-        {/* City */}
-        <TextField
-          name="city"
-          value={formData.city}
-          onChange={handleChange}
-          fullWidth
-          label="City *"
-          variant="filled"
-          error={!!errors.city}
-          helperText={errors.city}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+            <TextField
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              fullWidth
+              label="City *"
+              variant="filled"
+              error={!!errors.city}
+              helperText={errors.city}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
 
-        {/* Pincode */}
-        <TextField
-          name="pincode"
-          value={formData.pincode}
-          onChange={handleChange}
-          fullWidth
-          label="Pincode *"
-          variant="filled"
-          error={!!errors.pincode}
-          helperText={errors.pincode}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+            <TextField
+              name="pincode"
+              value={formData.pincode}
+              onChange={handleChange}
+              fullWidth
+              label="Pincode *"
+              variant="filled"
+              error={!!errors.pincode}
+              helperText={errors.pincode}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
 
-        {/* Nominee Section */}
-        <Typography variant="h6" sx={{ mt: 2, color: "black" }}>
-          Nominee Details
-        </Typography>
+            <Typography variant="h6" sx={{ mt: 2, color: "black" }}>
+              Nominee Details
+            </Typography>
 
-        <TextField
-          name="nominee_name"
-          value={formData.nominee_name}
-          onChange={handleChange}
-          fullWidth
-          label="Nominee Name *"
-          variant="filled"
-          error={!!errors.nominee_name}
-          helperText={errors.nominee_name}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+            <TextField
+              name="nominee_name"
+              value={formData.nominee_name}
+              onChange={handleChange}
+              fullWidth
+              label="Nominee Name *"
+              variant="filled"
+              error={!!errors.nominee_name}
+              helperText={errors.nominee_name}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
 
-        <TextField
-          name="nominee_mobile"
-          value={formData.nominee_mobile}
-          onChange={handleChange}
-          fullWidth
-          label="Nominee Mobile *"
-          type="tel"
-          variant="filled"
-          error={!!errors.nominee_mobile}
-          helperText={errors.nominee_mobile}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+            <TextField
+              name="nominee_mobile"
+              value={formData.nominee_mobile}
+              onChange={handleChange}
+              fullWidth
+              label="Nominee Mobile *"
+              type="tel"
+              variant="filled"
+              error={!!errors.nominee_mobile}
+              helperText={errors.nominee_mobile}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
 
-        <TextField
-          name="nominee_relation"
-          value={formData.nominee_relation}
-          onChange={handleChange}
-          fullWidth
-          label="Nominee Relation *"
-          variant="filled"
-          error={!!errors.nominee_relation}
-          helperText={errors.nominee_relation}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-        />
+            <TextField
+              name="nominee_relation"
+              value={formData.nominee_relation}
+              onChange={handleChange}
+              fullWidth
+              label="Nominee Relation *"
+              variant="filled"
+              error={!!errors.nominee_relation}
+              helperText={errors.nominee_relation}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                },
+              }}
+            />
+          </>
+        )}
 
         {/* Password */}
         <TextField
@@ -404,6 +488,29 @@ function CreateAccount() {
           }}
         />
 
+        {/* ✅ Show Role selection only if SuperAdmin */}
+        {isSuperAdmin && (
+          <TextField
+            select
+            fullWidth
+            label="Select Role *"
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            variant="filled"
+            error={!!errors.role}
+            helperText={errors.role}
+            InputProps={{
+              disableUnderline: true,
+              sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+            }}
+          >
+            <MenuItem value="Admin">Admin</MenuItem>
+            <MenuItem value="Agent">Agent</MenuItem>
+            <MenuItem value="User">User</MenuItem>
+          </TextField>
+        )}
+
         {/* Terms */}
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Checkbox />
@@ -430,6 +537,22 @@ function CreateAccount() {
           Register
         </Button>
       </Box>
+      
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <MuiAlert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          elevation={6}
+          variant="filled"
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </Box>
   );
 }

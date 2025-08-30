@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import path from "path";
 // Load environment variables
 dotenv.config();
 
@@ -20,6 +20,7 @@ import schemeMembershipsRoutes from "./routes/schemeMemberships.js";
 import schemePaymentsRoutes from "./routes/schemePayments.js";
 
 const app = express();
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(express.json());
 app.use(cors());
 

@@ -23,12 +23,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 2. Verify OTP
 
 bash
-curl -X POST http://localhost:5000/api/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": 1,
-    "otp": "123456"
-  }'
+	
 3. Login
 
 bash
@@ -73,25 +68,7 @@ curl -X GET "http://localhost:5000/api/scheme-groups?branch_id=1&group_code=GOLD
 9. Create Scheme Group
 
 bash
-curl -X POST http://localhost:5000/api/scheme-groups \
-  -H "Content-Type: application/json" \
-  -d '{
-    "group_code": "GOLD001",
-    "description": "Gold Saving Scheme",
-    "amount_per_inst": 5000,
-    "no_of_members": 100,
-    "start_no": 1,
-    "no_of_inst": 12,
-    "is_flexible": true,
-    "is_gold_scheme": true,
-    "bonus": 1000,
-    "total_balance_amt": 500000,
-    "total_gold_balance": 1000,
-    "note": "Premium gold scheme",
-    "branch_id": 1,
-    "is_closed": false,
-    "sync_status": "synced"
-  }'
+	
 10. Health Check
 
 bash

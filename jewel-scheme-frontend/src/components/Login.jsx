@@ -13,7 +13,7 @@
   import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
   import Visibility from "@mui/icons-material/Visibility";
   import VisibilityOff from "@mui/icons-material/VisibilityOff";
-  import img from "./images1.jpg";
+  import img from "./images/images1.jpg";
   import logo from "./logo.png";
   import { useNavigate } from "react-router-dom";
 
@@ -25,13 +25,13 @@
     const [errorMessage, setErrorMessage] = useState("");
 
     const handleCreateAccount = () => {
-      navigate("/CreateAccount"); // redirect to create account page
+      navigate("/CreateAccount"); 
     };
 
     const handleLogin = async () => {
       setErrorMessage("");
       try {
-       const res = await axios.post(`${process.env.REACT_APP_API_URL}/login`, {
+       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
         mobile,
         password,
       });
@@ -42,8 +42,13 @@
         if (res.data.success) {
           // Login successful
           sessionStorage.setItem("mobile", res.data.user.mobile); // store mobile
-          sessionStorage.setItem("name", res.data.user.firstname); // store firstname as name
+          sessionStorage.setItem("name", res.data.user.name); // store firstname as name
           sessionStorage.setItem("title", res.data.user.title); // store title
+          sessionStorage.setItem("role", res.data.user.role); // store role
+          sessionStorage.setItem(
+                    "is_super_admin",
+                    res.data.user.role === "SuperAdmin" ? "1" : "0"
+                  );
           navigate("/Home"); // redirect to home page
         }
          
