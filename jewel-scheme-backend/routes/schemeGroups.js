@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllGroups, createGroup, deleteGroup } from "../controllers/schemeGroupsController.js";
+import { getAllGroups, createGroup, deleteGroup,getGroupById, updateGroup  } from "../controllers/schemeGroupsController.js";
   import multer from "multer";
   
 
@@ -18,6 +18,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get("/", getAllGroups);
+router.get("/:id", getGroupById);
 router.post("/", upload.single("banner"),createGroup);
 router.delete("/:id", deleteGroup);
+router.put("/:id", upload.single("banner"), updateGroup);
 export default router;

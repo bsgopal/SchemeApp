@@ -36,22 +36,25 @@
         password,
       });
         
-        console.log(res.data);
+        // console.log(res.data);
         
 
         if (res.data.success) {
-          // Login successful
+           const userId = res.data.user.id;
+          sessionStorage.setItem("userId", userId); // store user ID
           sessionStorage.setItem("mobile", res.data.user.mobile); // store mobile
           sessionStorage.setItem("name", res.data.user.name); // store firstname as name
           sessionStorage.setItem("title", res.data.user.title); // store title
           sessionStorage.setItem("role", res.data.user.role); // store role
+          sessionStorage.setItem("email", res.data.user.email); // store email
           sessionStorage.setItem(
                     "is_super_admin",
                     res.data.user.role === "SuperAdmin" ? "1" : "0"
                   );
           navigate("/Home"); // redirect to home page
         }
-         
+          console.log("📦 Current sessionStorage:", { ...sessionStorage });
+          // console.log("Logged in user id:", userId);
       } catch (err) {
         if (err.response && err.response.status === 401) {
       // Invalid credentials

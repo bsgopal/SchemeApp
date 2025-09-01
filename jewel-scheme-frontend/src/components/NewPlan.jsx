@@ -20,7 +20,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const NewPlan = ({ onBack, onJoinNow }) => {
+const NewPlan = ({ onBack }) => {
   const [plans, setPlans] = useState([]);
   const [selectionMode, setSelectionMode] = useState(false); // toggle checkboxes
   const [selectedPlans, setSelectedPlans] = useState([]);
@@ -36,6 +36,11 @@ const NewPlan = ({ onBack, onJoinNow }) => {
   useEffect(() => {
     fetchPlans();
   }, []);
+
+  const handleJoinNow = (planId) => {
+    
+    navigate(`/joinnewplan/${planId}`);
+  };
 
   const fetchPlans = async ({ page = 1, limit = 20, branch_id = 1, group_code } = {}) => {
     try {
@@ -74,7 +79,7 @@ const NewPlan = ({ onBack, onJoinNow }) => {
   const handleEdit = () => {
   if (selectedPlans.length === 1) {
     const planId = selectedPlans[0];
-    navigate(`/create-plan/${planId}`);  // ✅ redirect to edit page
+    navigate(`/createnewplan/${planId}`);  // ✅ redirect to edit page
   } else {
     alert("Select exactly 1 plan to edit.");
   }
@@ -176,7 +181,7 @@ const NewPlan = ({ onBack, onJoinNow }) => {
                         fullWidth
                         size="medium"
                         sx={{ mt: 2 }}
-                        onClick={() => onJoinNow(plan.id)}
+                        onClick={() => handleJoinNow(plan.id)}
                       >
                         Join This Plan
                       </Button>

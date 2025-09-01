@@ -19,7 +19,6 @@ if (!fs.existsSync(uploadDir)) {
   // Get all groups with optional filter and pagination
 
 export const getAllGroups = async (req, res) => {
-   console.log("✅ getAllGroups called with query params:", req.query);
   try {
     // Extract query params
     const { branch_id, group_code, page = 1, limit = 20 } = req.query;
@@ -161,11 +160,110 @@ export const getAllGroups = async (req, res) => {
 export const deleteGroup = async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query("DELETE FROM scheme_groups WHERE id = ?", [id]);
+    await db.query("DELETE FROM scheme_groups WHERE id = ?", [id]);
     res.json({ success: true, message: "Plan deleted successfully" });
   } catch (err) {
     console.error("Error deleting plan:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+export const getGroupById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await db.query("SELECT * FROM scheme_groups WHERE id = ?", [id]);
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Plan not found" });
+    }
+
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      group_code,
+      plan_name,
+      plan_type,
+      description,
+      amount_per_inst,
+      gold_weight,
+      jewellery_type,
+      duration,
+      no_of_members,
+      start_no,
+      is_flexible,
+      is_gold_scheme,
+      bonus,
+      total_balance,
+      note,
+      status,
+      priority,
+      branch_id,
+      sync_status
+    } = req.body;
+
+    const banner_path = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Build query dynamically
+    const fields = [
+      "group_code = ?",
+      "plan_name = ?",
+      "plan_type = ?",
+      "description = ?",
+      "amount_per_inst = ?",
+      "total_gold_balance = ?",
+      "jewellery_type = ?",
+      "no_of_inst = ?",
+      "no_of_members = ?",
+      "start_no = ?",
+      "is_flexible = ?",
+      "is_gold_scheme = ?",
+      "bonus = ?",
+      "total_balance_amt = ?",
+      "note = ?",
+      "status = ?",
+      "priority = ?",
+      "branch_id = ?",
+      "sync_status = ?"
+    ];
+
+    const params = [
+      group_code, plan_name, plan_type, description || null,
+      amount_per_inst, gold_weight, jewellery_type, duration, no_of_members,
+      start_no || null, is_flexible ? 1 : 0, is_gold_scheme ? 1 : 0,
+      bonus, total_balance, note, status, priority, branch_id, sync_status || null
+    ];
+
+    if (banner_path) {
+      fields.push("banner_path = ?");
+      params.push(banner_path);
+    }
+
+    params.push(id);
+
+    const [result] = await db.execute(
+      `UPDATE scheme_groups SET ${fields.join(", ")} WHERE id = ?`,
+      params
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Plan not found" });
+    }
+
+    res.json({ success: true, message: "Plan updated successfully" });
+  } catch (err) {
+    console.error("Error updating group:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 
