@@ -38,8 +38,8 @@ const NewPlan = ({ onBack }) => {
   }, []);
 
   const handleJoinNow = (planId) => {
-    
-    navigate(`/joinnewplan/${planId}`);
+
+    navigate(`/plans/joinnewplan/${planId}`);
   };
 
   const fetchPlans = async ({ page = 1, limit = 20, branch_id = 1, group_code } = {}) => {
@@ -79,7 +79,7 @@ const NewPlan = ({ onBack }) => {
   const handleEdit = () => {
   if (selectedPlans.length === 1) {
     const planId = selectedPlans[0];
-    navigate(`/createnewplan/${planId}`);  // ✅ redirect to edit page
+    navigate(`/createnewplan/${planId}`);  
   } else {
     alert("Select exactly 1 plan to edit.");
   }

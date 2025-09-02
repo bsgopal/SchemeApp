@@ -7,7 +7,8 @@ import Sidemenu from "./components/Sidemenu";
 import OTP from "./components/OTP";
 import CreateNewPlan from "./components/CreateNewPlan";
 import NewPlan from "./components/NewPlan";
-import JoinNewPlan from "./components/JoinNewPlan";
+import JoinNewPlan from "./components/plans/JoinNewPlan";
+import PaymentPage from "./components/plans/paymentpage";
 
 // Mock banner images for demonstration
 const BANNERS = {
@@ -88,7 +89,8 @@ function App() {
       />
 
       {/* Join New Plan */}
-      <Route path="/joinnewplan/:id" element={<JoinNewPlan />} />
+      <Route path="/plans/joinnewplan/:planId" element={<JoinNewPlan />} />
+      <Route path="/plans/payment/:planId" element={<PaymentPage />} />
     </Routes>
   );
 }
