@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "react-scripts": "^5.0.1"
-  }
+  },
+  "scripts": {
+  "start": "node jewel-scheme-backend/server.js"
+}
+
 }
