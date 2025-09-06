@@ -56,14 +56,20 @@
           console.log("📦 Current sessionStorage:", { ...sessionStorage });
           // console.log("Logged in user id:", userId);
       } catch (err) {
-        if (err.response && err.response.status === 401) {
-      // Invalid credentials
-      setErrorMessage("Invalid credentials. Please enter valid mobile number and password.");
-    } else {
-      // Other network/server errors
-      setErrorMessage("Something went wrong. Please try again.");
-    }
-      }
+  console.error("❌ Login API Error:", err);
+
+  if (err.response) {
+    console.error("📡 Response:", err.response.data);
+    setErrorMessage(err.response.data.message || "Login failed.");
+  } else if (err.request) {
+    console.error("🌐 Request sent but no response:", err.request);
+    setErrorMessage("No response from server. Possible CORS or network issue.");
+  } else {
+    console.error("⚠️ Setup error:", err.message);
+    setErrorMessage("Something went wrong. Please try again.");
+  }
+}
+
     };
 
     return (
@@ -73,15 +79,15 @@
     backgroundSize: "cover",
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
-    minHeight: "100vh",     // ✅ fills screen properly
-    width: "100%",          // better than 100vw (prevents scrollbars)
+    minHeight: "100vh",     
+    width: "100%",          
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-end",
     alignItems: "center",
     position: "relative",
     color: "white",
-    overflow: "hidden",     // stop drag white space
+    overflow: "hidden",     
   }}
 >
         {/* Skip login text */}
@@ -94,8 +100,6 @@
             left: 5,
             color: "#fff",
             fontWeight: "bold",
-            // textDecoration: "underline",
-            // backgroundColor: "rgba(255,255,255,0.7)",
             px: 3,
             borderRadius: "4px",
           }}

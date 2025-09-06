@@ -62,7 +62,7 @@ export const register = async (req, res) => {
       title,
       role // Added for SuperAdmin to specify role
     } = req.body;
-    
+      
     if (!title) {
       return res.status(400).json({ 
         success: false, 
@@ -78,15 +78,15 @@ export const register = async (req, res) => {
     const aadhaar = req.body.aadhaar || null;
     const pan = req.body.pan || null;
 
-    // Check if user exists
+    
     const [existing] = await db.execute("SELECT id FROM users WHERE mobile=? OR email=?", [mobile, email]);
     if (existing.length > 0)
       return res.status(400).json({ success: false, message: "Mobile or Email already exists" });
 
-    // Hash password
+   
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Determine role - SuperAdmin can specify, normal users default to "User"
+   
     const userRole = role || "User";
 
     // Insert user - BOTH cases start as inactive until OTP verification
