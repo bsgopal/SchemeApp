@@ -20,6 +20,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
 const NewPlan = ({ onBack }) => {
   const [plans, setPlans] = useState([]);
   const [selectionMode, setSelectionMode] = useState(false); // toggle checkboxes
@@ -30,6 +32,7 @@ const NewPlan = ({ onBack }) => {
 
   // Role check from sessionStorage
   const userRole = (sessionStorage.getItem("role") || "").toLowerCase(); 
+  
 
 
   // Fetch plans
@@ -44,7 +47,7 @@ const NewPlan = ({ onBack }) => {
 
   const fetchPlans = async ({ page = 1, limit = 20, branch_id = 1, group_code } = {}) => {
     try {
-      const res = await axios.get("http://localhost:5000/api/scheme-groups", {
+      const res = await axios.get(`${API_BASE_URL}/api/scheme-groups`, {
         params: { page, limit, branch_id, group_code },
       });
       setPlans(res.data.data);
@@ -65,7 +68,7 @@ const NewPlan = ({ onBack }) => {
     try {
       await Promise.all(
         selectedPlans.map((id) =>
-          axios.delete(`http://localhost:5000/api/scheme-groups/${id}`)
+          axios.delete(`${API_BASE_URL}/api/scheme-groups/${id}`)
         )
       );
       setPlans(plans.filter((p) => !selectedPlans.includes(p.id)));

@@ -16,6 +16,7 @@
   import img from "./images/images1.jpg";
   import logo from "./logo.png";
   import { useNavigate } from "react-router-dom";
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   function Login() {
     const navigate = useNavigate();
@@ -30,8 +31,9 @@
 
     const handleLogin = async () => {
       setErrorMessage("");
+      console.log("API URL:", API_BASE_URL)
       try {
-       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
+       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         mobile,
         password,
       });

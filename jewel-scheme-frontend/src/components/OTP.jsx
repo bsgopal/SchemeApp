@@ -3,6 +3,8 @@
   import { useLocation, useNavigate } from "react-router-dom";
   import axios from "axios";
 
+   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
   function OTP() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -17,7 +19,7 @@
     const [resendCooldown, setResendCooldown] = useState(0);
     const inputRefs = useRef([]);
 
-    // Cooldown timer for resend OTP
+  
     useEffect(() => {
       let timer;
       if (resendCooldown > 0) {
@@ -87,7 +89,7 @@
 
       setIsLoading(true);
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/verify-otp", 
+       const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp`,
           { 
             userId, 
             otp: otpValue, 
@@ -122,7 +124,7 @@
 
       setIsLoading(true);
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/resend-otp", { userId, email });
+        const res = await axios.post(`${API_BASE_URL}/api/auth/resend-otp`, { userId, email });
         if (res.data.success) {
           setMessage("New OTP sent to your email! ✅");
           setIsError(false);

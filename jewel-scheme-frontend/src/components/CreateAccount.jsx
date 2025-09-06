@@ -109,13 +109,14 @@ function CreateAccount() {
 
     try {
       const payload = {
-      ...formData,
-      isSuperAdminCreate: isSuperAdmin // Add this flag
-    };
+        ...formData,
+        isSuperAdminCreate: isSuperAdmin // Add this flag
+      };
       const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        `${process.env.REACT_APP_API_URL}/api/auth/register`,
         payload
       );
+
       console.log("Backend response:", res.data);
 
       if (res.data.success) {
@@ -135,29 +136,29 @@ function CreateAccount() {
         setFormData({
           firstname: "",
           title: "",
-            email: "",
-            mobile: "",
-            address: "",
-            state: "",
-            city: "",
-            pincode: "",
-            password: "",
-            confirmPassword: "",
-            nominee_name: "",
-            nominee_mobile: "",
-            nominee_relation: "",
-            role: "",
-          });
-       
-          sessionStorage.setItem("tempUserId", userId);
-          navigate("/otp", {
-            state: {
-              email: formData.email,
-              userId: userId,
-              isSuperAdminCreate: isSuperAdmin 
-            },
-          });
-        
+          email: "",
+          mobile: "",
+          address: "",
+          state: "",
+          city: "",
+          pincode: "",
+          password: "",
+          confirmPassword: "",
+          nominee_name: "",
+          nominee_mobile: "",
+          nominee_relation: "",
+          role: "",
+        });
+
+        sessionStorage.setItem("tempUserId", userId);
+        navigate("/otp", {
+          state: {
+            email: formData.email,
+            userId: userId,
+            isSuperAdminCreate: isSuperAdmin
+          },
+        });
+
       } else {
         setSnackbar({
           open: true,
@@ -537,7 +538,7 @@ function CreateAccount() {
           Register
         </Button>
       </Box>
-      
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
