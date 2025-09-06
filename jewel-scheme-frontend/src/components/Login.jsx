@@ -31,24 +31,22 @@
 
     const handleLogin = async () => {
       setErrorMessage("");
-      console.log("API URL:", API_BASE_URL)
+      console.log("Calling API:", process.env.REACT_APP_API_URL);
       try {
-       const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
         mobile,
         password,
       });
-        
-        // console.log(res.data);
-        
+      console.log("Login response:", res.data);        
 
         if (res.data.success) {
            const userId = res.data.user.id;
-          sessionStorage.setItem("userId", userId); // store user ID
-          sessionStorage.setItem("mobile", res.data.user.mobile); // store mobile
-          sessionStorage.setItem("name", res.data.user.name); // store firstname as name
-          sessionStorage.setItem("title", res.data.user.title); // store title
-          sessionStorage.setItem("role", res.data.user.role); // store role
-          sessionStorage.setItem("email", res.data.user.email); // store email
+          sessionStorage.setItem("userId", userId);
+          sessionStorage.setItem("mobile", res.data.user.mobile);
+          sessionStorage.setItem("name", res.data.user.name);
+          sessionStorage.setItem("title", res.data.user.title);
+          sessionStorage.setItem("role", res.data.user.role);
+          sessionStorage.setItem("email", res.data.user.email);
           sessionStorage.setItem(
                     "is_super_admin",
                     res.data.user.role === "SuperAdmin" ? "1" : "0"
