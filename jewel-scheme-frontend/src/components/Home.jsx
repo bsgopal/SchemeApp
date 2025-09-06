@@ -31,7 +31,7 @@ const bannerImages = [
   "/images/banner1.jpg",
   "/images/banner2.jpg",
   "/images/banner3.jpg",
-];
+];  
 
 // Unified features list with role-based access
 const allFeatures = [
