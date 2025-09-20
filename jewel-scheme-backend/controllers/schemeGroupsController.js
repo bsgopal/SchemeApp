@@ -1,22 +1,22 @@
-  import db from "../config/db.js";
-  import multer from "multer";
-  import path from "path";
-  import fs from "fs";
+import db from "../config/db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
-  const uploadDir = path.join(process.cwd(), "uploads");
+const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
-  const storage = multer.diskStorage({
+const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     cb(null, Date.now() + "-" + file.originalname);
   }
 });
 
-  const upload = multer({ storage });
+const upload = multer({ storage });
 
-  // Get all groups with optional filter and pagination
+// Get all groups with optional filter and pagination
 
 export const getAllGroups = async (req, res) => {
   try {
@@ -41,7 +41,7 @@ export const getAllGroups = async (req, res) => {
     const offset = (pageInt - 1) * limitInt;
 
     query += ` ORDER BY created_at DESC LIMIT ${limitInt} OFFSET ${offset}`;
-   
+
     const [rows] = await db.execute(query, params);
 
     const host = req.protocol + "://" + req.get("host"); // full URL prefix
@@ -66,107 +66,139 @@ export const getAllGroups = async (req, res) => {
 };
 
 
-  // Helper: convert undefined → null, booleans → 0/1
-  const safe = (val) => {
-    if (val === undefined || val === "") return null;
-    if (typeof val === "boolean") return val ? 1 : 0;
-    return val === null ? null : val; // Ensure explicit null is preserved
-  };
+// Helper: convert undefined → null, booleans → 0/1
+const safe = (val) => {
+  if (val === undefined || val === "") return null;
+  if (typeof val === "boolean") return val ? 1 : 0;
+  return val === null ? null : val; // Ensure explicit null is preserved
+};
 
-  export const createGroup = async (req, res) => {
-     console.log("Uploaded file:", req.file); 
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
+export const createGroup = async (req, res) => {
+  console.log("Uploaded file:", req.file);
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
 
-      const {
-              group_code,
-              plan_name,
-              plan_type,
-              description,   // ✅ new
-              amount_per_inst,
-              gold_weight,
-              jewellery_type,
-              duration,
-              no_of_members,
-              start_no,      // ✅ new
-              is_flexible,
-              is_gold_scheme, // ✅ new
-              bonus,
-              total_balance,
-              note,
-              benefits = [],
-              terms = [],
-              status,
-              priority,
-              branch_id,
-              sync_status    // ✅ new
-            } = req.body;
-            const banner_path = req.file ? `/uploads/${req.file.filename}` : null;
-            console.log("Banner path to store:", banner_path);
+    const {
+      group_code,
+      plan_name,
+      plan_type,
+      description,   // ✅ new
+      amount_per_inst,
+      gold_weight,
+      jewellery_type,
+      duration,
+      no_of_members,
+      start_no,      // ✅ new
+      is_flexible,
+      is_gold_scheme, // ✅ new
+      bonus,
+      total_balance,
+      note,
+      benefits = [],
+      terms = [],
+      status,
+      priority,
+      branch_id,
+      sync_status    // ✅ new
+    } = req.body;
+    const banner_path = req.file ? `/uploads/${req.file.filename}` : null;
+    console.log("Banner path to store:", banner_path);
 
 
-      // Insert into scheme_groups
-      const [result] = await conn.execute(
-          `INSERT INTO scheme_groups 
+    // Insert into scheme_groups
+    const [result] = await conn.execute(
+      `INSERT INTO scheme_groups 
             (group_code, plan_name, plan_type, description, amount_per_inst, 
             total_gold_balance, jewellery_type, no_of_inst, no_of_members, 
             start_no, is_flexible, is_gold_scheme, bonus, total_balance_amt, 
             note, banner_path , status, priority, branch_id, is_closed, sync_status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            group_code, plan_name, plan_type, description || null, amount_per_inst,
-            gold_weight, jewellery_type, duration, no_of_members,
-            start_no || null, is_flexible ? 1 : 0, is_gold_scheme ? 1 : 0, bonus, total_balance,
-            note, banner_path, status, priority, branch_id, 0, sync_status || null
-          ]
+      [
+        group_code, plan_name, plan_type, description || null, amount_per_inst,
+        gold_weight, jewellery_type, duration, no_of_members,
+        start_no || null, is_flexible ? 1 : 0, is_gold_scheme ? 1 : 0, bonus, total_balance,
+        note, banner_path, status, priority, branch_id, 0, sync_status || null
+      ]
+    );
+
+
+    const schemeGroupId = result.insertId;
+
+    // Insert benefits
+    for (const benefit of benefits) {
+      if (benefit) {
+        await conn.execute(
+          `INSERT INTO scheme_group_benefits (scheme_group_id, benefit_text) VALUES (?, ?)`,
+          [schemeGroupId, benefit]
         );
-
-
-      const schemeGroupId = result.insertId;
-
-      // Insert benefits
-      for (const benefit of benefits) {
-        if (benefit) {
-          await conn.execute(
-            `INSERT INTO scheme_group_benefits (scheme_group_id, benefit_text) VALUES (?, ?)`,
-            [schemeGroupId, benefit]
-          );
-        }
       }
-
-      // Insert terms
-      for (const term of terms) {
-        if (term) {
-          await conn.execute(
-            `INSERT INTO scheme_group_terms (scheme_group_id, term_text) VALUES (?, ?)`,
-            [schemeGroupId, term]
-          );
-        }
-      }
-
-      await conn.commit();
-      res.json({ success: true, id: schemeGroupId });
-    } catch (err) {
-      await conn.rollback();
-      console.error("Error creating group:", err);
-      res.status(500).json({ success: false, message: err.message });
-    } finally {
-      conn.release();
     }
-  };
 
-  // controller
-export const deleteGroup = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query("DELETE FROM scheme_groups WHERE id = ?", [id]);
-    res.json({ success: true, message: "Plan deleted successfully" });
+    // Insert terms
+    for (const term of terms) {
+      if (term) {
+        await conn.execute(
+          `INSERT INTO scheme_group_terms (scheme_group_id, term_text) VALUES (?, ?)`,
+          [schemeGroupId, term]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ success: true, id: schemeGroupId });
   } catch (err) {
-    console.error("Error deleting plan:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    await conn.rollback();
+    console.error("Error creating group:", err);
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    conn.release();
   }
 };
+
+// controller
+export const deleteGroup = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { id } = req.params;
+
+    await conn.beginTransaction();
+
+    // Get existing record (for banner path)
+    const [existing] = await conn.execute(
+      "SELECT banner_path FROM scheme_groups WHERE id = ?",
+      [id]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ success: false, message: "Plan not found" });
+    }
+
+    const bannerPath = existing[0].banner_path;
+
+    // Delete child records
+    await conn.execute("DELETE FROM scheme_group_benefits WHERE scheme_group_id = ?", [id]);
+    await conn.execute("DELETE FROM scheme_group_terms WHERE scheme_group_id = ?", [id]);
+
+    // Delete main record
+    await conn.execute("DELETE FROM scheme_groups WHERE id = ?", [id]);
+
+    await conn.commit();
+
+    // Remove banner file if exists
+    if (bannerPath && fs.existsSync(path.join(process.cwd(), bannerPath))) {
+      fs.unlinkSync(path.join(process.cwd(), bannerPath));
+    }
+
+    res.json({ success: true, message: "Plan deleted successfully" });
+  } catch (err) {
+    await conn.rollback();
+    console.error("Error deleting plan:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  } finally {
+    conn.release();
+  }
+};
+
 
 
 export const getGroupById = async (req, res) => {
@@ -186,6 +218,7 @@ export const getGroupById = async (req, res) => {
 };
 
 export const updateGroup = async (req, res) => {
+  const conn = await db.getConnection();
   try {
     const { id } = req.params;
     const {
@@ -207,12 +240,27 @@ export const updateGroup = async (req, res) => {
       status,
       priority,
       branch_id,
-      sync_status
+      sync_status,
+      benefits = [],
+      terms = []
     } = req.body;
 
-    const banner_path = req.file ? `/uploads/${req.file.filename}` : null;
+    // Start transaction
+    await conn.beginTransaction();
 
-    // Build query dynamically
+    // Get existing record (for old banner path)
+    const [existing] = await conn.execute(
+      "SELECT banner_path FROM scheme_groups WHERE id = ?",
+      [id]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ success: false, message: "Plan not found" });
+    }
+
+    const oldBannerPath = existing[0].banner_path;
+    const newBannerPath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Build update query
     const fields = [
       "group_code = ?",
       "plan_name = ?",
@@ -242,26 +290,55 @@ export const updateGroup = async (req, res) => {
       bonus, total_balance, note, status, priority, branch_id, sync_status || null
     ];
 
-    if (banner_path) {
+    if (newBannerPath) {
       fields.push("banner_path = ?");
-      params.push(banner_path);
+      params.push(newBannerPath);
     }
 
     params.push(id);
 
-    const [result] = await db.execute(
+    // Update group
+    await conn.execute(
       `UPDATE scheme_groups SET ${fields.join(", ")} WHERE id = ?`,
       params
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Plan not found" });
+    // Update benefits
+    await conn.execute("DELETE FROM scheme_group_benefits WHERE scheme_group_id = ?", [id]);
+    for (const benefit of benefits) {
+      if (benefit) {
+        await conn.execute(
+          "INSERT INTO scheme_group_benefits (scheme_group_id, benefit_text) VALUES (?, ?)",
+          [id, benefit]
+        );
+      }
+    }
+
+    // Update terms
+    await conn.execute("DELETE FROM scheme_group_terms WHERE scheme_group_id = ?", [id]);
+    for (const term of terms) {
+      if (term) {
+        await conn.execute(
+          "INSERT INTO scheme_group_terms (scheme_group_id, term_text) VALUES (?, ?)",
+          [id, term]
+        );
+      }
+    }
+
+    await conn.commit();
+
+    // Delete old banner if replaced
+    if (newBannerPath && oldBannerPath && fs.existsSync(path.join(process.cwd(), oldBannerPath))) {
+      fs.unlinkSync(path.join(process.cwd(), oldBannerPath));
     }
 
     res.json({ success: true, message: "Plan updated successfully" });
   } catch (err) {
+    await conn.rollback();
     console.error("Error updating group:", err);
     res.status(500).json({ success: false, message: err.message });
+  } finally {
+    conn.release();
   }
 };
 

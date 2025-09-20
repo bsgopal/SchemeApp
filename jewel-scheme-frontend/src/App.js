@@ -9,6 +9,9 @@ import CreateNewPlan from "./components/CreateNewPlan";
 import NewPlan from "./components/NewPlan";
 import JoinNewPlan from "./components/plans/JoinNewPlan";
 import PaymentPage from "./components/plans/paymentpage";
+import RateEntry from "./components/RateEntry";
+import NewArrivals from "./components/newarrivals/NewArrivals"; // 👈 customer view
+import ManageNewArrivals from "./components/newarrivals/ManageNewArrivals"; // 👈 admin upload/manage
 
 // Mock banner images for demonstration
 const BANNERS = {
@@ -61,8 +64,9 @@ function App() {
       <Route path="/CreateAccount" element={<CreateAccount />} />
       <Route path="/Home" element={<Home />} />
       <Route path="/Sidemenu" element={<Sidemenu />} />
+      <Route path="/rateentry" element={<RateEntry />} />
       <Route path="/otp" element={<OTP />} />
-      
+
       {/* Create Plan */}
       <Route
         path="/createnewplan"
@@ -75,22 +79,16 @@ function App() {
         element={<CreateNewPlan onUpdatePlan={updatePlan} plans={plans} />}
       />
 
-      {/* View Plans */}
-      <Route
-        path="/newplan"
-        element={
-          <NewPlan
-            plans={plans}
-            onBack={handleBack}
-            onJoinNow={handleJoinNow}
-            banners={BANNERS}
-          />
-        }
-      />
+      <Route path="/newplan" element={<NewPlan onBack={handleBack} />} />
+      <Route path="/newplan/:id" element={<NewPlan onBack={handleBack} />} />
 
       {/* Join New Plan */}
       <Route path="/plans/joinnewplan/:planId" element={<JoinNewPlan />} />
       <Route path="/plans/payment/:planId" element={<PaymentPage />} />
+
+      {/* 🟢 New Arrivals */}
+      <Route path="/newarrivals" element={<NewArrivals />} /> {/* customer view */}
+      <Route path="/manage-newarrivals" element={<ManageNewArrivals />} /> {/* admin upload */}
     </Routes>
   );
 }

@@ -16,7 +16,7 @@
   import img from "./images/images1.jpg";
   import logo from "./logo.png";
   import { useNavigate } from "react-router-dom";
-  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  // const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   function Login() {
     const navigate = useNavigate();

@@ -26,21 +26,14 @@ function Sidemenu({ open, onClose }) {
   const isLoggedIn = !!role;
 
   const handleLogout = () => {
-    sessionStorage.clear(); // clear all stored values
-    navigate("/login"); // redirect to login page
-    onClose(); // close drawer
+    sessionStorage.clear();
+    navigate("/login");
+    onClose();
   };
 
   const menuItems = [
-    { text: "Home", icon: <HomeIcon /> },
-    { text: "Payment History", icon: <HistoryIcon /> },
-    { text: "My Security Settings", icon: <SecurityIcon /> },
-    { text: "About Us", icon: <InfoIcon /> },
-    { text: "Our Policies", icon: <PolicyIcon /> },
-    { text: "Invite", icon: <GroupAddIcon /> },
-    { text: "Our Stores", icon: <StoreIcon /> },
-    { text: "Contact Us", icon: <CallIcon /> },
-    { text: "New arrivals", icon: <NewReleasesIcon /> },
+    { text: "Home", icon: <HomeIcon />, action: () => navigate("/") },
+
     ...(role === "SuperAdmin" || role === "Admin"
       ? [
           {
@@ -48,13 +41,36 @@ function Sidemenu({ open, onClose }) {
             icon: <NewReleasesIcon />,
             action: () => navigate("/rateentry"),
           },
+          {
+            text: "New Arrivals", // 🔥 Now links to upload/manage page
+            icon: <StoreIcon />,
+            action: () => navigate("/manage-newarrivals"),
+          },
+          {
+            text: "Payment History",
+            icon: <HistoryIcon />,
+            action: () => navigate("/paymenthistory"),
+          },
         ]
-      : []),
+      : [
+          {
+            text: "New Arrivals", // 👥 For normal users → view-only page
+            icon: <NewReleasesIcon />,
+            action: () => navigate("/newarrivals"),
+          },
+        ]),
+
+    { text: "My Security Settings", icon: <SecurityIcon /> },
+    { text: "About Us", icon: <InfoIcon /> },
+    { text: "Our Policies", icon: <PolicyIcon /> },
+    { text: "Invite", icon: <GroupAddIcon /> },
+    { text: "Our Stores", icon: <StoreIcon /> },
+    { text: "Contact Us", icon: <CallIcon /> },
   ];
 
   const handleItemClick = (action) => {
     if (action) action();
-    onClose(); // Close the drawer after navigation
+    onClose();
   };
 
   return (
@@ -69,7 +85,7 @@ function Sidemenu({ open, onClose }) {
           padding: 0,
         }}
       >
-        {/* Compact Logo Section */}
+        {/* Logo Section */}
         <Box
           sx={{
             display: "flex",
@@ -129,7 +145,7 @@ function Sidemenu({ open, onClose }) {
           ))}
         </List>
 
-        {/* Sign in / Logout option ABOVE Footer */}
+        {/* Sign in / Logout */}
         <Box
           sx={{
             borderTop: "1px solid #e0e0e0",

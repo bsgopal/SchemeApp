@@ -1,9 +1,18 @@
 import db from "../config/db.js";
 
-// Get all memberships with optional filters and pagination
+// Utility to format MySQL datetime
+const formatDate = (date) => date.toISOString().slice(0, 19).replace("T", " ");
+
+// -----------------------------
+// Get all memberships (no user-controlled limit)
+// -----------------------------
 export const getAllMemberships = async (req, res) => {
   try {
-    const { group_id, customer_user_id, status, page = 1, limit = 20 } = req.query;
+    const { group_id, customer_user_id, status } = req.query;
+    const page = 1;   // fixed
+    const limit = 20; // fixed
+    const offset = 0; // always first page for now
+
     let query = "SELECT * FROM scheme_memberships WHERE 1=1";
     const params = [];
 
@@ -20,75 +29,77 @@ export const getAllMemberships = async (req, res) => {
       params.push(status);
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
     query += " ORDER BY join_date DESC LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), offset);
+    params.push(limit, offset);
 
     const [rows] = await db.execute(query, params);
 
-    // Computed field for frontend
-    rows.forEach(row => {
-      row.membership_display = `Member ${row.member_no || 'N/A'} – ${row.metal_name || 'N/A'} (${row.status})`;
+    rows.forEach((row) => {
+      row.membership_display = `Member ${row.member_no || "N/A"} – ${row.metal_name || "N/A"} (${row.status})`;
     });
 
-    res.json({
-      success: true,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      data: rows
-    });
+    res.json({ success: true, data: rows });
   } catch (err) {
+    console.error("❌ Error in getAllMemberships:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-const formatDate = (date) =>
-  date.toISOString().slice(0, 19).replace("T", " ");
-
+// -----------------------------
+// Create Membership (safe, transaction + lock)
+// -----------------------------
 export const createMembership = async (req, res) => {
+  const connection = await db.getConnection(); // start transaction
   try {
-    const {
-      group_id,
-      customer_user_id,
-      inst_amount,
-      notes = null,
-      pan_number = null,
-    } = req.body;
+    const { group_id, customer_user_id, inst_amount, notes = null, pan_number = null } = req.body;
+
+    await connection.beginTransaction();
 
     // 1. Fetch group details
-    const [groups] = await db.execute(
-      "SELECT no_of_inst, group_code FROM scheme_groups WHERE id = ?",
+    const [groups] = await connection.execute(
+      "SELECT no_of_inst, group_code FROM scheme_groups WHERE id = ? FOR UPDATE",
       [group_id]
     );
     if (groups.length === 0) {
+      await connection.rollback();
       return res.status(400).json({ success: false, message: "Invalid group_id" });
     }
 
     const { no_of_inst, group_code } = groups[0];
-    const prefix = group_code.substring(0, 3).toUpperCase(); // first 3 letters
+    const prefix = group_code.substring(0, 3).toUpperCase();
 
-    // 2. Find the last member_no for this group
-    const [lastMember] = await db.execute(
-      "SELECT member_no FROM scheme_memberships WHERE group_id = ? ORDER BY id DESC LIMIT 1",
+    // 2. Count members in this group
+    const [countRows] = await connection.execute(
+      "SELECT COUNT(*) as total FROM scheme_memberships WHERE group_id = ? FOR UPDATE",
+      [group_id]
+    );
+    if (countRows[0].total >= 300) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "This group has reached the maximum limit of 300 members",
+      });
+    }
+
+    // 3. Find last member_no (lock row)
+    const [lastMember] = await connection.execute(
+      "SELECT member_no FROM scheme_memberships WHERE group_id = ? ORDER BY id DESC LIMIT 1 FOR UPDATE",
       [group_id]
     );
 
-    let nextNumber = 101; // start from 101 if no members exist
+    let nextNumber = 101;
     if (lastMember.length > 0) {
-      const lastMemberNo = lastMember[0].member_no; // e.g., GRP105
-      const numericPart = parseInt(lastMemberNo.replace(/\D/g, ""), 10); // extract numbers
+      const lastMemberNo = lastMember[0].member_no;
+      const numericPart = parseInt(lastMemberNo.replace(/\D/g, ""), 10);
       if (!isNaN(numericPart)) {
         nextNumber = numericPart + 1;
       }
     }
-
     const member_no = `${prefix}${nextNumber}`;
 
-    // 3. Auto-generated/default fields
+    // 4. Auto fields
     const join_date_obj = new Date();
     const join_date = formatDate(join_date_obj);
-
-    // maturity = join_date + no_of_inst months
     const maturity_date_obj = new Date(join_date_obj);
     maturity_date_obj.setMonth(maturity_date_obj.getMonth() + no_of_inst);
     const maturity_date = formatDate(maturity_date_obj);
@@ -98,16 +109,14 @@ export const createMembership = async (req, res) => {
     const metal_name = "gold";
     const silver_balance = 0;
     const last_modified = formatDate(new Date());
-    const introduced_by_user_id = null;
-    const introducer_relation = null;
     const branch_id = 1;
-    const is_closed = 0;
 
-    // 4. Insert membership
-    const [result] = await db.execute(
+    // 5. Insert membership
+    const [result] = await connection.execute(
       `INSERT INTO scheme_memberships 
-      (group_id, customer_user_id, member_no, inst_amount, join_date, maturity_date, status, collection_type, metal_name, silver_balance, last_modified, introduced_by_user_id, introducer_relation, branch_id, notes, is_closed, pan_number)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (group_id, customer_user_id, member_no, inst_amount, join_date, maturity_date, status, 
+       collection_type, metal_name, silver_balance, last_modified, branch_id, notes, is_closed, pan_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         group_id,
         customer_user_id,
@@ -120,14 +129,14 @@ export const createMembership = async (req, res) => {
         metal_name,
         silver_balance,
         last_modified,
-        introduced_by_user_id,
-        introducer_relation,
         branch_id,
         notes,
-        is_closed,
+        0, // is_closed default
         pan_number,
       ]
     );
+
+    await connection.commit();
 
     res.status(201).json({
       success: true,
@@ -137,7 +146,10 @@ export const createMembership = async (req, res) => {
       maturity_date,
     });
   } catch (err) {
-    console.error("❌ DB Error:", err);
+    console.error("❌ Error in createMembership:", err);
+    await connection.rollback();
     res.status(500).json({ message: err.message });
+  } finally {
+    connection.release();
   }
 };

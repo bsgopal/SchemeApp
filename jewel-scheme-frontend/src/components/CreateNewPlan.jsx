@@ -24,6 +24,8 @@ import axios from "axios";
 const CreateNewPlan = ({ onCreatePlan }) => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const DEFAULT_BANNER = "/images/banner1.jpg";
+
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -55,7 +57,21 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     ]
   });
 
-  const GOLD_RATE = 6000;
+  const [goldRate, setGoldRate] = useState(0);
+
+  // fetch live goldRate from backend
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/rates`);
+        setGoldRate(res.data.goldRate || 0);
+      } catch (err) {
+        console.error("Failed to fetch rates", err);
+      }
+    };
+    fetchRates();
+  }, []);
+
 
   // ✅ Fetch existing plan in edit mode
   useEffect(() => {
@@ -97,19 +113,29 @@ const CreateNewPlan = ({ onCreatePlan }) => {
 
 
   const handleInputChange = (field, value) => {
+
+    if (field === "groupCode" || field === "planName") {
+    value = value?.toUpperCase();
+  }
     setPlanData(prev => {
       let updated = { ...prev, [field]: value };
-      if (field === 'amountPerInst' || field === 'duration') {
-        const amt = field === 'amountPerInst' ? value : prev.amountPerInst;
-        const dur = field === 'duration' ? value : prev.duration;
-        if (amt && dur) {
-          updated.totalBalance = parseFloat(amt) * parseInt(dur);
-          updated.goldWeight = (amt / GOLD_RATE).toFixed(3);
+
+      const amt = field === 'amountPerInst' ? value : prev.amountPerInst;
+      const dur = field === 'duration' ? value : prev.duration;
+
+      if (amt && dur) {
+        const totalBalance = parseFloat(amt) * parseInt(dur);
+        updated.totalBalance = totalBalance;
+
+        if (goldRate > 0) {
+          updated.goldWeight = (totalBalance / goldRate).toFixed(3);
         }
       }
+
       return updated;
     });
   };
+
 
   const handleBenefitChange = (index, value) => {
     const newBenefits = [...planData.benefits];
@@ -117,10 +143,31 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     setPlanData(prev => ({ ...prev, benefits: newBenefits }));
   };
 
-  const handleBannerUpload = (e) => {
+  const handleBannerUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPlanData(prev => ({ ...prev, banner: file }));
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("banner", file);
+
+      // Upload the image to your backend
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/groups`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+
+      if (res.data.success) {
+        // Save the URL/path returned by backend
+        setPlanData(prev => ({ ...prev, banner: res.data.url }));
+      } else {
+        alert("Image upload failed: " + res.data.message);
+      }
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Error uploading image: " + err.message);
     }
   };
 
@@ -137,6 +184,7 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     e.preventDefault();
     try {
       const formData = new FormData();
+      formData.append("banner", planData.banner); // file
       formData.append("group_code", planData.groupCode);
       formData.append("plan_name", planData.planName);
       formData.append("plan_type", planData.planType);
@@ -156,9 +204,14 @@ const CreateNewPlan = ({ onCreatePlan }) => {
       formData.append("branch_id", 1);
       formData.append("sync_status", "");
 
-      if (planData.banner instanceof File) {
+      if (!planData.banner) {
+        formData.append("banner", DEFAULT_BANNER);
+      } else if (planData.banner instanceof File) {
+        formData.append("banner", planData.banner);
+      } else {
         formData.append("banner", planData.banner);
       }
+
 
       planData.benefits?.forEach((b, i) => formData.append(`benefits[${i}]`, b));
       planData.terms?.forEach((t, i) => formData.append(`terms[${i}]`, t));
@@ -257,10 +310,11 @@ const CreateNewPlan = ({ onCreatePlan }) => {
                   fullWidth
                   label="Group Code"
                   value={planData.groupCode}
-                  onChange={(e) => handleInputChange('groupCode', e.target.value)}
+                  onChange={(e) => handleInputChange('groupCode', e.target.value.toUpperCase())}
                   margin="normal"
                   required
                 />
+
 
                 <TextField
                   fullWidth
@@ -302,7 +356,7 @@ const CreateNewPlan = ({ onCreatePlan }) => {
                     value={planData.goldWeight}
                     onChange={(e) => handleInputChange('goldWeight', e.target.value)}
                     margin="normal"
-                    required
+                    disabled
                   />
 
                   <TextField
@@ -401,13 +455,16 @@ const CreateNewPlan = ({ onCreatePlan }) => {
                         src={
                           planData.banner instanceof File
                             ? URL.createObjectURL(planData.banner)
-                            : planData.banner.startsWith("http")
-                              ? planData.banner
-                              : `http://localhost:5000${planData.banner}`
+                            : planData.banner
+                              ? (planData.banner.startsWith("http")
+                                ? planData.banner
+                                : `http://localhost:5000${planData.banner}`)
+                              : DEFAULT_BANNER
                         }
                         alt="Banner Preview"
                         style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 8 }}
                       />
+
                     </Box>
                   )}
                 </Box>

@@ -26,6 +26,7 @@ const JoinNewPlan = () => {
   const [userData, setUserData] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -61,14 +62,15 @@ const JoinNewPlan = () => {
     const fetchPlanDetails = async () => {
       if (!planId) return;
       try {
-        const res = await axios.get(`http://localhost:5000/api/schemes/${planId}`);
-        setSelectedPlan(res.data);
+        const res = await axios.get(`${API_BASE_URL}/api/scheme-groups/${planId}`);
+        setSelectedPlan(res.data.data);
       } catch (err) {
         console.error("❌ Error fetching plan details:", err);
       }
     };
     fetchPlanDetails();
   }, [planId]);
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -83,34 +85,35 @@ const JoinNewPlan = () => {
     formData.pincode;
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const userId = sessionStorage.getItem("userId");
-      const payload = {
-        group_id: planId,
-        customer_user_id: userId,
-        inst_amount: selectedPlan?.installmentAmount || 500,
-        notes: `PAN: ${formData.panCard}, Address: ${formData.address}, Area: ${formData.area}, City: ${formData.city}, State: ${formData.state}, Pincode: ${formData.pincode}, Country: ${formData.country}`,
-      };
+  e.preventDefault();
+  setIsLoading(true);
+  try {
+    const userId = sessionStorage.getItem("userId");
+    const payload = {
+      group_id: planId,
+      customer_user_id: userId,
+      inst_amount: selectedPlan?.amount_per_inst || 500,
+      notes: `PAN: ${formData.panCard}, Address: ${formData.address}, Area: ${formData.area}, City: ${formData.city}, State: ${formData.state}, Pincode: ${formData.pincode}, Country: ${formData.country}`,
+    };
 
-      const res = await axios.post("http://localhost:5000/api/scheme-memberships", payload);
-      const membershipId = res.data.id;
+    const res = await axios.post(`${API_BASE_URL}/api/scheme-memberships`, payload);
+    const membershipId = res.data.id;
 
-      navigate(`/plans/payment/${planId}`, {
-        state: { customerData: formData },
-      });
-    } catch (err) {
-      console.error("❌ Error creating membership:", err);
-      setSnackbar({
-        open: true,
-        message: "Failed to create membership. Please try again.",
-        severity: "error",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Pass membershipId to payment page
+    navigate(`/plans/payment/${membershipId}`, {
+      state: { customerData: formData, plan: selectedPlan },
+    });
+  } catch (err) {
+    console.error("❌ Error creating membership:", err);
+    setSnackbar({
+      open: true,
+      message: "Failed to create membership. Please try again.",
+      severity: "error",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
