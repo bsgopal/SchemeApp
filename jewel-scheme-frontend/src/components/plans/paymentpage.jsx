@@ -64,18 +64,21 @@ const PaymentPage = () => {
   const handleOnlinePayment = async () => {
     setIsLoading(true);
     try {
-      // 1️⃣ Save Payment
-      await axios.post(`${API_BASE_URL}/api/scheme-payments`, {
-        receipt_no: `ONLINE-${Date.now()}`,
-        receipt_date: new Date(),
-        membership_id: membershipId,
-        receipt_type: "installment",
-        amount: plan?.amount_per_inst || 500,
-        mode_primary: "razorpay",
-        status: "completed",
-      });
+      // 🔒 Temporarily skip real payment integration
+      // -------------------------------------------------
+      // // 1️⃣ Save Payment
+      // await axios.post(`${API_BASE_URL}/api/scheme-payments`, {
+      //   receipt_no: `ONLINE-${Date.now()}`,
+      //   receipt_date: new Date(),
+      //   membership_id: membershipId,
+      //   receipt_type: "installment",
+      //   amount: plan?.amount_per_inst || 500,
+      //   mode_primary: "razorpay",
+      //   status: "completed",
+      // });
+      // -------------------------------------------------
 
-      // 2️⃣ Join Plan
+      // 2️⃣ Directly join plan for now (simulate success)
       await axios.post(`${API_BASE_URL}/api/plans/join`, {
         plan_id: plan?.id,
         user_id: sessionStorage.getItem("user_id") || 1,
@@ -84,8 +87,8 @@ const PaymentPage = () => {
       showSnackbar("✅ Payment Successful & Plan Joined!", "success");
       navigate("/my-plans");
     } catch (err) {
-      console.error("❌ Online Payment Error:", err);
-      showSnackbar("Online payment failed.", "error");
+      console.error("❌ Simulated Payment Error:", err);
+      showSnackbar("Something went wrong while joining the plan.", "error");
     } finally {
       setIsLoading(false);
     }

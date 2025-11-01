@@ -19,8 +19,16 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+const shimmerKeyframes = `
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+`;
 
 const NewPlan = ({ onBack }) => {
   const [plans, setPlans] = useState([]);
@@ -32,18 +40,13 @@ const NewPlan = ({ onBack }) => {
 
   const userRole = (sessionStorage.getItem("role") || "").toLowerCase();
 
-  // 🔹 internal join handler
+  // 🔹 join handler
   const handleJoinNow = (planId) => {
     navigate(`/plans/joinnewplan/${planId}`);
   };
 
   // 🔹 fetch plans
-  const fetchPlans = async ({
-    page = 1,
-    limit = 20,
-    branch_id = 1,
-    group_code,
-  } = {}) => {
+  const fetchPlans = async ({ page = 1, limit = 20, branch_id = 1, group_code } = {}) => {
     try {
       let res;
       if (id) {
@@ -103,23 +106,46 @@ const NewPlan = ({ onBack }) => {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#fff", overflowX: "hidden" }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #3a004d, #1a1a1a)",
+        color: "#fff",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Inject shimmer keyframes */}
+      <style>{shimmerKeyframes}</style>
+
       {/* Header */}
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar
+        position="static"
+        sx={{
+          background: "linear-gradient(90deg, #000, #2c2c2c)",
+          borderBottom: "2px solid #d4af37",
+        }}
+        elevation={2}
+      >
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={onBack}>
             <ArrowBackIcon />
           </IconButton>
           <Typography
             variant="h6"
-            sx={{ flexGrow: 1, textAlign: "center", fontWeight: 600 }}
+            sx={{
+              flexGrow: 1,
+              textAlign: "center",
+              fontWeight: 700,
+              letterSpacing: 1,
+              color: "#d4af37",
+              textShadow: "0px 0px 6px rgba(212,175,55,0.6)",
+            }}
           >
             New Purchase Plan
           </Typography>
           {userRole === "superadmin" && (
             <Button
-              color="primary"
-              variant="outlined"
+              sx={{ border: "1px solid #d4af37", color: "#d4af37" }}
               onClick={() => setSelectionMode((prev) => !prev)}
             >
               {selectionMode ? "Cancel" : "Select"}
@@ -128,12 +154,20 @@ const NewPlan = ({ onBack }) => {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 3 }}>
         {userRole === "superadmin" &&
           selectionMode &&
           selectedPlans.length > 0 && (
             <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
-              <Button variant="contained" color="warning" onClick={handleEdit}>
+              <Button
+                variant="contained"
+                sx={{
+                  background: "linear-gradient(90deg, #d4af37, #b8860b)",
+                  color: "#000",
+                  fontWeight: "bold",
+                }}
+                onClick={handleEdit}
+              >
                 Edit
               </Button>
               <Button
@@ -147,75 +181,156 @@ const NewPlan = ({ onBack }) => {
           )}
 
         {plans.length > 0 ? (
-          <Grid container spacing={2}>
-            {plans.map((plan) => (
-              <Grid item xs={12} key={plan.id}>
-                <Card
-                  sx={{
-                    textAlign: "center",
-                    display: "flex",
-                    alignItems: "center",
+          <Grid container spacing={4}>
+            {plans.map((plan, index) => (
+              <Grid item xs={12} md={6} key={plan.id}>
+                <motion.div
+                  initial={{ opacity: 0, y: 60, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    delay: index * 0.2,
+                    duration: 0.8,
+                    ease: "easeOut",
                   }}
                 >
-                  {selectionMode && (
-                    <Checkbox
-                      checked={selectedPlans.includes(plan.id)}
-                      onChange={() => togglePlanSelection(plan.id)}
-                    />
-                  )}
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ mb: 2 }}>
-                      <img
-                        src={`${process.env.REACT_APP_API_URL}${plan.banner}`}
-                        alt={`${plan.plan_name} Banner`}
-                        style={{
-                          width: "100%",
-                          borderRadius: 8,
-                          maxHeight: 200,
-                          objectFit: "cover",
-                        }}
+                  <Card
+                    sx={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(212,175,55,0.6)",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      backdropFilter: "blur(8px)",
+                      color: "#fff",
+                      transition: "all 0.4s ease-in-out",
+                      "&:hover": {
+                        transform: "translateY(-8px) scale(1.03)",
+                        boxShadow: "0px 12px 30px rgba(212, 175, 55, 0.5)",
+                      },
+                    }}
+                  >
+                    {selectionMode && (
+                      <Checkbox
+                        checked={selectedPlans.includes(plan.id)}
+                        onChange={() => togglePlanSelection(plan.id)}
+                        sx={{ color: "#d4af37" }}
                       />
-                    </Box>
-                    <Typography variant="h6" gutterBottom>
-                      {plan.plan_name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      {plan.note ||
-                        "A Gold Jewellery Saving scheme with good returns"}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Plan Type: {plan.plan_type}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Amount per installment: ₹{plan.amount_per_inst}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Jewellery Type: {plan.jewellery_type}
-                    </Typography>
-
-                    {!selectionMode && (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        size="medium"
-                        sx={{ mt: 2 }}
-                        onClick={() => handleJoinNow(plan.id)}
-                      >
-                        Join This Plan
-                      </Button>
                     )}
-                  </CardContent>
-                </Card>
+                    <CardContent sx={{ textAlign: "center" }}>
+                      {/* Shimmer wrapper */}
+                      <Box
+                        sx={{
+                          mb: 2,
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          border: "2px solid #d4af37",
+                          position: "relative",
+                        }}
+                      >
+                        <motion.img
+                          src={`${process.env.REACT_APP_API_URL}${plan.banner}`}
+                          alt={`${plan.plan_name} Banner`}
+                          style={{
+                            width: "100%",
+                            maxHeight: 220,
+                            objectFit: "cover",
+                          }}
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.4 }}
+                        />
+                        {/* shimmer overlay */}
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 0,
+                            left: "-100%",
+                            width: "200%",
+                            height: "100%",
+                            background:
+                              "linear-gradient(120deg, transparent 20%, rgba(255,215,0,0.4) 50%, transparent 80%)",
+                            animation: "shimmer 3s infinite",
+                          }}
+                        />
+                      </Box>
+
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: "#ffd700",
+                          fontWeight: "bold",
+                          textShadow: "0 0 8px rgba(255,215,0,0.6)",
+                        }}
+                      >
+                        {plan.plan_name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "#ddd", fontStyle: "italic", mt: 1 }}
+                        gutterBottom
+                      >
+                        {plan.note ||
+                          "A Gold Jewellery Saving scheme with good returns"}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ color: "#aaa" }}
+                      >
+                        Plan Type: {plan.plan_type}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ color: "#aaa" }}
+                      >
+                        Amount per installment: ₹{plan.amount_per_inst}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ color: "#aaa" }}
+                      >
+                        Jewellery Type: {plan.jewellery_type}
+                      </Typography>
+
+                      {!selectionMode && (
+                        <motion.div whileHover={{ scale: 1.08 }}>
+                          <Button
+                            variant="contained"
+                            fullWidth
+                            size="medium"
+                            sx={{
+                              mt: 2,
+                              background:
+                                "linear-gradient(90deg, #ffd700, #d4af37)",
+                              color: "#000",
+                              fontWeight: "bold",
+                              borderRadius: 2,
+                              boxShadow: "0px 4px 12px rgba(212,175,55,0.6)",
+                            }}
+                            onClick={() => handleJoinNow(plan.id)}
+                          >
+                            Join This Plan
+                          </Button>
+                        </motion.div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </Grid>
             ))}
           </Grid>
         ) : (
-          <Paper elevation={3} sx={{ p: 3, textAlign: "center", mb: 2 }}>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 3,
+              textAlign: "center",
+              mb: 2,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid #d4af37",
+              color: "#d4af37",
+            }}
+          >
             <Typography>No plans available.</Typography>
           </Paper>
         )}

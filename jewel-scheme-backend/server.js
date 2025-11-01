@@ -18,6 +18,10 @@ import schemeMembershipsRoutes from "./routes/schemeMemberships.js";
 import schemePaymentsRoutes from "./routes/schemePayments.js";
 import rates from "./routes/rates.js";
 import newArrivalsRoutes from "./routes/newArrivalsRoutes.js";   // ✅ Added
+import plansRoute from "./routes/plansRoute.js";
+import myPlansRoute from "./routes/myPlansRoute.js";
+
+
 
 const app = express();
 
@@ -55,6 +59,11 @@ app.use("/api/scheme-memberships", schemeMembershipsRoutes);
 app.use("/api/scheme-payments", schemePaymentsRoutes);
 app.use("/api/rates", rates);
 app.use("/api/newarrivals", newArrivalsRoutes);  // ✅ Added
+// app.use("/api/scheme-payments", schemePaymentsRoute);
+app.use("/api/my-plans", myPlansRoute);
+
+app.use("/api/plans", plansRoute);
+
 
 // ✅ Health Check
 app.get("/", (req, res) => res.send("Jewel Saving Scheme API Running..."));

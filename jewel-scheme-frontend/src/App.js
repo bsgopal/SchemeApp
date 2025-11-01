@@ -12,6 +12,7 @@ import PaymentPage from "./components/plans/paymentpage";
 import RateEntry from "./components/RateEntry";
 import NewArrivals from "./components/newarrivals/NewArrivals"; // 👈 customer view
 import ManageNewArrivals from "./components/newarrivals/ManageNewArrivals"; // 👈 admin upload/manage
+import MyPlans from "./components/MyPlans";
 
 // Mock banner images for demonstration
 const BANNERS = {
@@ -66,6 +67,7 @@ function App() {
       <Route path="/Sidemenu" element={<Sidemenu />} />
       <Route path="/rateentry" element={<RateEntry />} />
       <Route path="/otp" element={<OTP />} />
+      <Route path="/my-plans" element={<MyPlans />} />
 
       {/* Create Plan */}
       <Route

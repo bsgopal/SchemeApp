@@ -5,17 +5,11 @@ import {
   Grid,
   Card,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   CardContent,
   CardMedia,
   Badge,
   Container,
   AppBar,
-  Toolbar
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import Slider from "react-slick";
@@ -38,15 +32,15 @@ import { useNavigate } from "react-router-dom";
 import Sidemenu from "./Sidemenu";
 import { motion } from "framer-motion";
 
-const bannerImages = ["/images/banner1.jpg", "/images/banner2.jpg", "/images/banner3.jpg"];
+const bannerImages = ["/images/banner1.png", "/images/banner2.png", "/images/banner3.png"];
 const newArrivals = [
-  { id: 1, title: "Diamond Stud Earrings", price: "₹ 75,000", img: "/images/earrings.jpg" },
-  { id: 2, title: "Gold Chain Necklace", price: "₹ 1,20,000", img: "/images/necklace.jpg" },
-  { id: 3, title: "22k Gold Bangles", price: "₹ 80,000", img: "/images/bangles.jpg" },
+  { id: 1, title: "Diamond Stud Earrings", price: "₹ 75,000", img: "/images/earrings.png" },
+  { id: 2, title: "Gold Chain Necklace", price: "₹ 1,20,000", img: "/images/necklace.png" },
+  { id: 3, title: "22k Gold Bangles", price: "₹ 80,000", img: "/images/bangles.png" },
 ];
 const allFeatures = [
   { label: "New Plan", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/newplan" },
-  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/myplans" },
+  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/my-plans" },
   { label: "Pay EMA", icon: <PaymentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/payema" },
   { label: "My Wallet", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/wallet" },
   { label: "Offers", icon: <LocalOfferIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/offers" },
@@ -184,7 +178,8 @@ const Home = () => {
             left: 0,
             width: "100%",
             height: "60px",
-            bgcolor: "rgba(26,0,51,0.9)",
+            bgcolor: "transparent",
+            background: "linear-gradient(90deg, #1A0033 0%, #4B0082 100%)",
             zIndex: 1000,
             display: "flex",
             alignItems: "center",
@@ -206,7 +201,7 @@ const Home = () => {
             <motion.img
               src={logo}
               alt="Logo"
-              style={{ height: 50, width: "auto", objectFit: "contain" }}
+              style={{ height: 200, width: "auto", objectFit: "contain" }}
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
@@ -409,59 +404,46 @@ const Home = () => {
       </Box>
 
       {/* Fixed Footer */}
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          top: 'auto', 
-          bottom: 0, 
-          backgroundColor: 'rgba(26,0,51,0.9)',
-          borderTop: '1px solid #FFD700',
-          zIndex: 1000
-        }}
-      >
-        <Container maxWidth="lg">
-          <Toolbar sx={{ justifyContent: 'space-between', minHeight: '60px !important' }}>
-            <Typography variant="body2" sx={{ color: '#FFD700' }}>
-              © {new Date().getFullYear()} Your Company Name. All rights reserved.
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton 
-                sx={{ color: '#FFD700' }} 
-                component="a" 
-                href="https://wa.me/yourphonenumber" 
-                target="_blank"
-              >
-                <FaWhatsapp />
-              </IconButton>
-              <IconButton 
-                sx={{ color: '#FFD700' }} 
-                component="a" 
-                href="https://instagram.com/yourusername" 
-                target="_blank"
-              >
-                <InstagramIcon />
-              </IconButton>
-              <IconButton 
-                sx={{ color: '#FFD700' }} 
-                component="a" 
-                href="https://facebook.com/yourusername" 
-                target="_blank"
-              >
-                <FacebookIcon />
-              </IconButton>
-              <IconButton 
-                sx={{ color: '#FFD700' }} 
-                component="a" 
-                href="https://youtube.com/yourchannel" 
-                target="_blank"
-              >
-                <YouTubeIcon />
-              </IconButton>
-            </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
+     {/* Fixed Footer */}
+<AppBar 
+  position="fixed" 
+  sx={{ 
+    top: 'auto', 
+    bottom: 0, 
+    backgroundColor: 'rgba(26,0,51,0.9)',
+    borderTop: '1px solid #FFD700',
+    zIndex: 1000,
+    py: 0.5
+  }}
+>
+  <Container maxWidth="lg">
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+      
+      {/* Social Icons */}
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <IconButton sx={{ color: '#25D366', p: 0.5 }} component="a" href="https://wa.me/yourphonenumber" target="_blank">
+          <FaWhatsapp />
+        </IconButton>
+        <IconButton sx={{ color: '#E4405F', p: 0.5 }} component="a" href="https://instagram.com/yourusername" target="_blank">
+          <InstagramIcon />
+        </IconButton>
+        <IconButton sx={{ color: '#1877F2', p: 0.5 }} component="a" href="https://facebook.com/yourusername" target="_blank">
+          <FacebookIcon />
+        </IconButton>
+        <IconButton sx={{ color: '#FF0000', p: 0.5 }} component="a" href="https://youtube.com/yourchannel" target="_blank">
+          <YouTubeIcon />
+        </IconButton>
+      </Box>
+
+      {/* Copyright */}
+      <Typography variant="caption" sx={{ color: '#FFD700', textAlign: "center" }}>
+        © {new Date().getFullYear()} Renic Tech. All rights reserved.
+      </Typography>
+    </Box>
+  </Container>
+</AppBar>
+
+
     </Box>
   );
 };

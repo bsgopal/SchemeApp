@@ -17,8 +17,9 @@ import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import StoreIcon from "@mui/icons-material/Store";
 import CallIcon from "@mui/icons-material/Call";
 import NewReleasesIcon from "@mui/icons-material/NewReleases";
-import logo from "./logo.png";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import logo from "./logo.png";
 
 function Sidemenu({ open, onClose }) {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ function Sidemenu({ open, onClose }) {
             action: () => navigate("/rateentry"),
           },
           {
-            text: "New Arrivals", // 🔥 Now links to upload/manage page
+            text: "New Arrivals",
             icon: <StoreIcon />,
             action: () => navigate("/manage-newarrivals"),
           },
@@ -54,7 +55,7 @@ function Sidemenu({ open, onClose }) {
         ]
       : [
           {
-            text: "New Arrivals", // 👥 For normal users → view-only page
+            text: "New Arrivals",
             icon: <NewReleasesIcon />,
             action: () => navigate("/newarrivals"),
           },
@@ -74,15 +75,69 @@ function Sidemenu({ open, onClose }) {
   };
 
   return (
-    <Drawer anchor="left" open={open} onClose={onClose}>
+    <Drawer
+      anchor="left"
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          width: 280,
+          border: "none",
+          position: "relative",
+          overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        },
+      }}
+    >
+      {/* Gradient Background Layers */}
       <Box
         sx={{
-          width: 260,
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+        }}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            width: "100%",
+            height: "40%",
+            background: "linear-gradient(135deg, #1a001f, #43005b)",
+            top: 0,
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            width: "100%",
+            height: "30%",
+            background: "linear-gradient(135deg, #2c003e, #4b0066)",
+            top: "40%",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            width: "100%",
+            height: "30%",
+            background: "linear-gradient(135deg, #3b004f, #6a0080)",
+            top: "70%",
+          }}
+        />
+      </Box>
+
+      {/* Drawer Content */}
+      <motion.div
+        initial={{ x: -80, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: -80, opacity: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        style={{
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          bgcolor: "#f8f4e9",
-          padding: 0,
+          position: "relative",
+          zIndex: 1, // keeps content above background
         }}
       >
         {/* Logo Section */}
@@ -91,16 +146,21 @@ function Sidemenu({ open, onClose }) {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            height: 100,
-            backgroundColor: "white",
-            borderBottom: "1px solid #e0e0e0",
+            height: 140,
+            background:
+              "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,240,200,0.1))",
+            backdropFilter: "blur(8px)",
+            borderBottom: "1px solid rgba(212,160,23,0.3)",
           }}
         >
-          <img
+          <motion.img
             src={logo}
             alt="Logo"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
             style={{
-              height: 280,
+              height: 300,
               width: "auto",
               objectFit: "contain",
             }}
@@ -113,68 +173,90 @@ function Sidemenu({ open, onClose }) {
             flexGrow: 1,
             pt: 0,
             "& .MuiListItem-root": {
-              py: 1,
+              py: 1.2,
               px: 2,
-              minHeight: 48,
-              borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-              "&:hover": {
-                backgroundColor: "rgba(212, 160, 23, 0.08)",
-              },
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
+              transition: "all 0.3s ease",
+            },
+            "& .MuiListItem-root:hover": {
+              background:
+                "linear-gradient(135deg, rgba(212,160,23,0.2), rgba(255,220,150,0.25))",
+              transform: "scale(1.02)",
+              boxShadow: "0 3px 8px rgba(0,0,0,0.2)",
+              borderRadius: "8px",
             },
             "& .MuiListItemIcon-root": {
               minWidth: 36,
-              color: "#d4a017",
+              color: "#f5d76e", // golden icons
+            },
+            "& .MuiListItemText-root": {
+              color: "#fff",
             },
           }}
         >
-          {menuItems.map((item) => (
-            <ListItem
-              button
+          {menuItems.map((item, index) => (
+            <motion.div
               key={item.text}
-              onClick={() => handleItemClick(item.action)}
+              initial={{ x: -30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: index * 0.08, duration: 0.4 }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                }}
-              />
-            </ListItem>
+              <ListItem button onClick={() => handleItemClick(item.action)}>
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                  }}
+                />
+              </ListItem>
+            </motion.div>
           ))}
         </List>
 
         {/* Sign in / Logout */}
-        <Box
-          sx={{
-            borderTop: "1px solid #e0e0e0",
-            borderBottom: "1px solid #e0e0e0",
-            py: 2,
-            textAlign: "center",
-            cursor: "pointer",
-            color: "#d4a017",
-            fontWeight: "bold",
-            fontSize: "1.1rem",
-          }}
-          onClick={!isLoggedIn ? () => navigate("/login") : handleLogout}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
         >
-          {!isLoggedIn ? "Sign in / Sign up" : "Logout"}
-        </Box>
+          <Box
+            sx={{
+              borderTop: "1px solid rgba(255,255,255,0.2)",
+              borderBottom: "1px solid rgba(255,255,255,0.2)",
+              py: 2,
+              textAlign: "center",
+              cursor: "pointer",
+              color: "#f5d76e",
+              fontWeight: "bold",
+              fontSize: "1.1rem",
+              transition: "0.3s",
+              "&:hover": {
+                color: "#ffd700",
+                transform: "scale(1.05)",
+              },
+            }}
+            onClick={!isLoggedIn ? () => navigate("/login") : handleLogout}
+          >
+            {!isLoggedIn ? "Sign in / Sign up" : "Logout"}
+          </Box>
+        </motion.div>
 
         {/* Footer */}
         <Box
           sx={{
             p: 1.5,
-            backgroundColor: "white",
-            borderTop: "1px solid #e0e0e0",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+            textAlign: "center",
           }}
         >
-          <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" sx={{ color: "#ddd" }}>
             © {new Date().getFullYear()} Renic Tech. All rights reserved.
           </Typography>
         </Box>
-      </Box>
+      </motion.div>
     </Drawer>
   );
 }

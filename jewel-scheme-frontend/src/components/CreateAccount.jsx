@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -9,23 +9,86 @@ import {
   InputAdornment,
   Checkbox,
   FormHelperText,
+  Snackbar,
 } from "@mui/material";
+import MuiAlert from "@mui/material/Alert";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
-import Snackbar from "@mui/material/Snackbar";
-import MuiAlert from "@mui/material/Alert";
 import axios from "axios";
+import { motion } from "framer-motion";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
+
+// 🌟 Gold shimmer particles background
+function GoldShimmer() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      particles = [];
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 2 + 1,
+          speed: Math.random() * 0.3 + 0.05,
+          alpha: Math.random(),
+        });
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 215, 0, ${p.alpha})`;
+        ctx.fill();
+
+        p.y -= p.speed;
+        if (p.y < 0) {
+          p.y = canvas.height;
+          p.x = Math.random() * canvas.width;
+        }
+      });
+      requestAnimationFrame(animate);
+    };
+
+    resizeCanvas();
+    animate();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: 1,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
 
 function CreateAccount() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  // ✅ check role from session
   const isSuperAdmin = sessionStorage.getItem("is_super_admin") === "1";
 
   const [formData, setFormData] = React.useState({
@@ -54,16 +117,8 @@ function CreateAccount() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value || "",
-    }));
-
-    // Clear error
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value || "" }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
@@ -80,25 +135,17 @@ function CreateAccount() {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    // ✅ Only validate these if NOT SuperAdmin
     if (!isSuperAdmin) {
       if (!formData.address) newErrors.address = "Address is required";
       if (!formData.state) newErrors.state = "State is required";
       if (!formData.city) newErrors.city = "City is required";
       if (!formData.pincode) newErrors.pincode = "Pincode is required";
-
-      if (!formData.nominee_name)
-        newErrors.nominee_name = "Nominee name is required";
-      if (!formData.nominee_mobile)
-        newErrors.nominee_mobile = "Nominee mobile is required";
-      if (!formData.nominee_relation)
-        newErrors.nominee_relation = "Nominee relation is required";
+      if (!formData.nominee_name) newErrors.nominee_name = "Nominee name is required";
+      if (!formData.nominee_mobile) newErrors.nominee_mobile = "Nominee mobile is required";
+      if (!formData.nominee_relation) newErrors.nominee_relation = "Nominee relation is required";
     }
 
-    // ✅ Validate role only if SuperAdmin
-    if (isSuperAdmin && !formData.role) {
-      newErrors.role = "Role is required";
-    }
+    if (isSuperAdmin && !formData.role) newErrors.role = "Role is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -108,16 +155,11 @@ function CreateAccount() {
     if (!validateForm()) return;
 
     try {
-      const payload = {
-        ...formData,
-        isSuperAdminCreate: isSuperAdmin // Add this flag
-      };
+      const payload = { ...formData, isSuperAdminCreate: isSuperAdmin };
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/auth/register`,
         payload
       );
-
-      console.log("Backend response:", res.data);
 
       if (res.data.success) {
         const userId = res.data.userId;
@@ -131,8 +173,6 @@ function CreateAccount() {
           severity: "success",
         });
 
-        // ✅ Stay on same page (do not navigate)
-        // Optionally reset form
         setFormData({
           firstname: "",
           title: "",
@@ -150,15 +190,9 @@ function CreateAccount() {
           role: "",
         });
 
-        sessionStorage.setItem("tempUserId", userId);
         navigate("/otp", {
-          state: {
-            email: formData.email,
-            userId: userId,
-            isSuperAdminCreate: isSuperAdmin
-          },
+          state: { email: formData.email, userId, isSuperAdminCreate: isSuperAdmin },
         });
-
       } else {
         setSnackbar({
           open: true,
@@ -177,34 +211,33 @@ function CreateAccount() {
   };
 
   const handleBack = () => {
-    const isLoggedIn = sessionStorage.getItem("role"); // if role exists, user is logged in
-    if (isLoggedIn) {
-      navigate("/Home");   // ✅ SuperAdmin/Admin/Agent/User → go back to Home
-    } else {
-      navigate("/");       // ✅ Not logged in → go back to Login
-    }
+    const isLoggedIn = sessionStorage.getItem("role");
+    if (isLoggedIn) navigate("/Home");
+    else navigate("/");
+  };
+
+  // ✅ Updated input style for better visibility
+  const inputStyle = {
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    border: "1px solid rgba(212,175,55,0.5)",
+    "& .MuiInputBase-input": { color: "#fff" },           // typed text
+    "& input::placeholder": { color: "rgba(255,255,255,0.7)" }, // placeholder
+    "& .MuiFormHelperText-root": { color: "#ffdddd" },   // error text
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "#EDEDED",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        color: "white",
-      }}
-    >
-      {/* Back Arrow */}
+    <Box sx={{ position: "relative", minHeight: "100vh", backgroundColor: "#1a0a3c" }}>
+      <GoldShimmer />
+
       <IconButton
         onClick={handleBack}
         sx={{
           position: "fixed",
           top: 16,
           left: 16,
-          backgroundColor: "white",
-          boxShadow: 3,
+          backgroundColor: "rgba(255,255,255,0.9)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
           "&:hover": { backgroundColor: "#f0f0f0" },
           zIndex: 10,
         }}
@@ -212,34 +245,46 @@ function CreateAccount() {
         <ArrowBackIcon sx={{ color: "black" }} />
       </IconButton>
 
-      {/* Scrollable Content */}
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: "auto",
-          px: 2,
-          pt: 10,
-          pb: 6,
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{
+          width: "90%",
+          maxWidth: 520,
+          margin: " auto",
+          backgroundColor: "rgba(25, 0, 50, 0.7)",
+          borderRadius: "15px",
+          padding: "30px 20px",
+          boxShadow: "0 0 60px rgba(212, 175, 55, 0.4)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(212,175,55,0.5)",
+          zIndex: 10,
+          color: "#fff",
         }}
       >
-        {/* Title Dropdown */}
+        <Typography
+          variant="h4"
+          sx={{ textAlign: "center", color: "#D4AF37", fontWeight: 700, mb: 2 }}
+        >
+          Create Account
+        </Typography>
+
+        {/* Title */}
         <Select
           placeholder="Title *"
           name="title"
           value={formData.title}
-          onChange={(_, value) =>
-            setFormData((prev) => ({ ...prev, title: value }))
-          }
+          onChange={(_, value) => setFormData((prev) => ({ ...prev, title: value }))}
           sx={{
+            mt: 2,
             borderRadius: 3,
-            backgroundColor: "rgba(255,255,255,0.8)",
+            backgroundColor: "rgba(11,1,1,0.15)",
             px: 0.5,
             py: 0.5,
+            border: "1px solid rgba(212,175,55,0.5)",
+            color: "#fff",
           }}
-          error={!!errors.title}
         >
           <Option value="Mr">Mr</Option>
           <Option value="Mrs">Mrs</Option>
@@ -249,7 +294,7 @@ function CreateAccount() {
         </Select>
         {errors.title && <FormHelperText error>{errors.title}</FormHelperText>}
 
-        {/* Fullname */}
+        {/* Full Name */}
         <TextField
           name="firstname"
           value={formData.firstname}
@@ -259,10 +304,8 @@ function CreateAccount() {
           variant="filled"
           error={!!errors.firstname}
           helperText={errors.firstname}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
+          sx={{ mt: 2 }}
+          InputProps={{ disableUnderline: true, sx: inputStyle }}
         />
 
         {/* Email */}
@@ -276,10 +319,8 @@ function CreateAccount() {
           variant="filled"
           error={!!errors.email}
           helperText={errors.email}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
+          sx={{ mt: 2 }}
+          InputProps={{ disableUnderline: true, sx: inputStyle }}
         />
 
         {/* Mobile */}
@@ -293,13 +334,11 @@ function CreateAccount() {
           variant="filled"
           error={!!errors.mobile}
           helperText={errors.mobile}
-          InputProps={{
-            disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
+          sx={{ mt: 2 }}
+          InputProps={{ disableUnderline: true, sx: inputStyle }}
         />
 
-        {/* ✅ Show only if NOT SuperAdmin */}
+        {/* Non-SuperAdmin Fields */}
         {!isSuperAdmin && (
           <>
             <TextField
@@ -311,13 +350,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.address}
               helperText={errors.address}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
 
             <TextField
@@ -330,13 +364,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.state}
               helperText={errors.state}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             >
               <MenuItem value="Tamilnadu">Tamilnadu</MenuItem>
               <MenuItem value="Kerala">Kerala</MenuItem>
@@ -351,13 +380,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.city}
               helperText={errors.city}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
 
             <TextField
@@ -369,16 +393,11 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.pincode}
               helperText={errors.pincode}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
 
-            <Typography variant="h6" sx={{ mt: 2, color: "black" }}>
+            <Typography variant="h6" sx={{ mt: 3, color: "#D4AF37" }}>
               Nominee Details
             </Typography>
 
@@ -391,13 +410,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.nominee_name}
               helperText={errors.nominee_name}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
 
             <TextField
@@ -410,13 +424,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.nominee_mobile}
               helperText={errors.nominee_mobile}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
 
             <TextField
@@ -428,13 +437,8 @@ function CreateAccount() {
               variant="filled"
               error={!!errors.nominee_relation}
               helperText={errors.nominee_relation}
-              InputProps={{
-                disableUnderline: true,
-                sx: {
-                  borderRadius: 2,
-                  backgroundColor: "rgba(255,255,255,0.8)",
-                },
-              }}
+              sx={{ mt: 2 }}
+              InputProps={{ disableUnderline: true, sx: inputStyle }}
             />
           </>
         )}
@@ -450,9 +454,10 @@ function CreateAccount() {
           variant="filled"
           error={!!errors.password}
           helperText={errors.password}
+          sx={{ mt: 2 }}
           InputProps={{
             disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+            sx: inputStyle,
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton onClick={() => setShowPassword(!showPassword)}>
@@ -463,25 +468,23 @@ function CreateAccount() {
           }}
         />
 
-        {/* Confirm Password */}
         <TextField
-          fullWidth
-          label="Confirm Password *"
           name="confirmPassword"
-          type={showConfirmPassword ? "text" : "password"}
-          variant="filled"
           value={formData.confirmPassword}
           onChange={handleChange}
+          fullWidth
+          label="Confirm Password *"
+          type={showConfirmPassword ? "text" : "password"}
+          variant="filled"
           error={!!errors.confirmPassword}
           helperText={errors.confirmPassword}
+          sx={{ mt: 2 }}
           InputProps={{
             disableUnderline: true,
-            sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
+            sx: inputStyle,
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
+                <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                   {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
@@ -489,7 +492,7 @@ function CreateAccount() {
           }}
         />
 
-        {/* ✅ Show Role selection only if SuperAdmin */}
+        {/* SuperAdmin Role */}
         {isSuperAdmin && (
           <TextField
             select
@@ -501,10 +504,8 @@ function CreateAccount() {
             variant="filled"
             error={!!errors.role}
             helperText={errors.role}
-            InputProps={{
-              disableUnderline: true,
-              sx: { borderRadius: 2, backgroundColor: "rgba(255,255,255,0.8)" },
-            }}
+            sx={{ mt: 2 }}
+            InputProps={{ disableUnderline: true, sx: inputStyle }}
           >
             <MenuItem value="Admin">Admin</MenuItem>
             <MenuItem value="Agent">Agent</MenuItem>
@@ -513,9 +514,9 @@ function CreateAccount() {
         )}
 
         {/* Terms */}
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Checkbox />
-          <Typography variant="body2" sx={{ color: "black" }}>
+        <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+          <Checkbox sx={{ color: "#D4AF37", "&.Mui-checked": { color: "#FFD700" } }} />
+          <Typography variant="body2" sx={{ color: "#fff" }}>
             By Registering, You agree to our{" "}
             <span style={{ textDecoration: "underline", fontWeight: "bold" }}>
               Terms and Conditions
@@ -529,16 +530,22 @@ function CreateAccount() {
           variant="contained"
           onClick={handleRegister}
           sx={{
-            mt: 1,
-            borderRadius: 2,
-            backgroundColor: "#D4AF37",
-            "&:hover": { backgroundColor: "#C9A132" },
+            mt: 3,
+            borderRadius: 3,
+            background: "linear-gradient(90deg, #D4AF37, #FFD700)",
+            color: "#1a0a3c",
+            fontWeight: "bold",
+            py: 1.5,
+            fontSize: 16,
+            boxShadow: "0 4px 15px rgba(212,175,55,0.5)",
+            "&:hover": { background: "linear-gradient(90deg, #FFD700, #D4AF37)" },
           }}
         >
           Register
         </Button>
-      </Box>
+      </motion.div>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
