@@ -22,7 +22,6 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 const JoinNewPlan = () => {
   const { planId } = useParams();
   const navigate = useNavigate();
-  // FIX 1: Removed the space between 'User' and 'Data'
   const [userData, setUserData] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,43 +32,41 @@ const JoinNewPlan = () => {
     address: "",
     area: "",
     city: "",
-    state: "",
+    state: "Tamilnadu",
     pincode: "",
     country: "",
     panCard: "",
   });
 
-  // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "error",
   });
 
+  // 🧠 Fetch logged-in user details from sessionStorage
   useEffect(() => {
-    const fetchUserDetails = () => {
-      const name = sessionStorage.getItem("name");
-      const mobile = sessionStorage.getItem("mobile");
-      const email = sessionStorage.getItem("email");
-      // FIX 2: Corrected the function name to setUserData
-      setUserData({ name, mobile, email });
-      setFormData((prev) => ({ ...prev, fullName: name }));
-    };
-    fetchUserDetails();
+    const name = sessionStorage.getItem("name");
+    const mobile = sessionStorage.getItem("mobile");
+    const email = sessionStorage.getItem("email");
+    setUserData({ name, mobile, email });
+    setFormData((prev) => ({ ...prev, fullName: name }));
   }, []);
 
-  useEffect(() => {
-    const fetchPlanDetails = async () => {
-      if (!planId) return;
-      try {
-        const res = await axios.get(`${API_BASE_URL}/api/scheme-groups/${planId}`);
-        setSelectedPlan(res.data.data);
-      } catch (err) {
-        console.error("❌ Error fetching plan details:", err);
-      }
-    };
-    fetchPlanDetails();
-  }, [planId]);
+  // 📦 Fetch selected plan details
+ useEffect(() => {
+  const fetchPlanDetails = async () => {
+    if (!planId) return;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/scheme-groups/${planId}`);
+      // console.log(res.data.data);
+      setSelectedPlan(res.data.data);
+    } catch (err) {
+      console.error("❌ Error fetching plan details:", err);
+    }
+  };
+  fetchPlanDetails();
+}, [planId, API_BASE_URL]);
 
 
   const handleChange = (e) => {
@@ -84,36 +81,62 @@ const JoinNewPlan = () => {
     formData.state &&
     formData.pincode;
 
+  // ✅ Updated to use your new backend route `/api/payments/join-plan`
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  try {
-    const userId = sessionStorage.getItem("userId");
-    const payload = {
-      group_id: planId,
-      customer_user_id: userId,
-      inst_amount: selectedPlan?.amount_per_inst || 500,
-      notes: `PAN: ${formData.panCard}, Address: ${formData.address}, Area: ${formData.area}, City: ${formData.city}, State: ${formData.state}, Pincode: ${formData.pincode}, Country: ${formData.country}`,
-    };
+    e.preventDefault();
+    setIsLoading(true);
 
-    const res = await axios.post(`${API_BASE_URL}/api/scheme-memberships`, payload);
-    const membershipId = res.data.id;
+    try {
+      const userId = sessionStorage.getItem("userId");
+      const payload = {
+        plan_id: planId,
+        group_id: selectedPlan?.id 
+              || selectedPlan?.group_code 
+              || planId,
+        customer_user_id: userId,
+        branch_id: selectedPlan?.branch_id || 1,
+        amount: selectedPlan?.inst_amount || selectedPlan?.amount_per_inst || 500,
+        notes: `PAN: ${formData.panCard}, Address: ${formData.address}, Area: ${formData.area}, City: ${formData.city}, State: ${formData.state}, Pincode: ${formData.pincode}, Country: ${formData.country}`,
+      };
 
-    // Pass membershipId to payment page
-    navigate(`/plans/payment/${membershipId}`, {
-      state: { customerData: formData, plan: selectedPlan },
-    });
-  } catch (err) {
-    console.error("❌ Error creating membership:", err);
-    setSnackbar({
-      open: true,
-      message: "Failed to create membership. Please try again.",
-      severity: "error",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      const res = await axios.post(`${API_BASE_URL}/api/scheme-payments/join-plan`, payload);
+
+
+      if (res.data.success) {
+        setSnackbar({
+          open: true,
+          message: `✅ Joined successfully! TXN ID: ${res.data.transaction_id}`,
+          severity: "success",
+        });
+
+        // Navigate to payment confirmation page
+        navigate(`/plans/payment/${res.data.membership_id}`, {
+            state: {
+              type: "join",
+              plan: selectedPlan,
+              group_id: selectedPlan?.id || selectedPlan?.group_code || planId,
+              membership_id: res.data.membership_id,   // backend should return it
+            },
+          });
+
+      } else {
+        setSnackbar({
+          open: true,
+          message: "❌ Failed to join plan. Please try again.",
+          severity: "error",
+        });
+      }
+    } catch (err) {
+      console.error("❌ Server error while joining plan:", err);
+      setSnackbar({
+        open: true,
+        message: "❌ Server error while joining plan",
+        severity: "error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
@@ -126,7 +149,7 @@ const JoinNewPlan = () => {
     "Karnataka",
     "Kerala",
     "Maharashtra",
-    "Tamil Nadu",
+    "Tamilnadu",
     "Telangana",
     "Uttar Pradesh",
     "West Bengal",
@@ -160,26 +183,12 @@ const JoinNewPlan = () => {
           <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
             Please share your details
           </Typography>
+
           <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-              sx={{ mb: 2 }}
-            />
+            <TextField fullWidth label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} required sx={{ mb: 2 }} />
+            <TextField fullWidth label="Address" name="address" value={formData.address} onChange={handleChange} required sx={{ mb: 2 }} />
             <TextField fullWidth label="Area" name="area" value={formData.area} onChange={handleChange} required sx={{ mb: 2 }} />
+
             <Box display="flex" gap={2} mb={2}>
               <TextField fullWidth label="City" name="city" value={formData.city} onChange={handleChange} required />
               <Autocomplete
@@ -190,6 +199,7 @@ const JoinNewPlan = () => {
                 fullWidth
               />
             </Box>
+
             <TextField fullWidth label="Pincode" name="pincode" value={formData.pincode} onChange={handleChange} required sx={{ mb: 2 }} />
             <TextField fullWidth label="PAN Card" name="panCard" value={formData.panCard} onChange={handleChange} sx={{ mb: 2 }} />
 
@@ -204,6 +214,7 @@ const JoinNewPlan = () => {
             </Button>
           </Box>
         </Paper>
+
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

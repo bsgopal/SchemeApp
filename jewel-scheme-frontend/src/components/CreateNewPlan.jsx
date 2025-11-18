@@ -49,7 +49,7 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     benefits: [''],
     status: 'Active',
     priority: 1,
-    banner: '',
+    banner: '' || DEFAULT_BANNER,
     terms: [
       'Minimum subscription period of 12 months',
       'Early withdrawals are not allowed',
@@ -192,12 +192,10 @@ const CreateNewPlan = ({ onCreatePlan }) => {
       formData.append("branch_id", 1);
       formData.append("sync_status", "");
 
-      if (!planData.banner) {
-        formData.append("banner", DEFAULT_BANNER);
-      } else if (planData.banner instanceof File) {
+      if (planData.banner instanceof File) {
         formData.append("banner", planData.banner);
       } else {
-        formData.append("banner", planData.banner);
+        formData.append("banner", DEFAULT_BANNER);
       }
 
       planData.benefits?.forEach((b, i) => formData.append(`benefits[${i}]`, b));
@@ -291,7 +289,7 @@ const CreateNewPlan = ({ onCreatePlan }) => {
       </Box>
 
       <Grid container spacing={4}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           {/* Animated Card */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -411,17 +409,20 @@ const CreateNewPlan = ({ onCreatePlan }) => {
                         handleInputChange('goldWeight', e.target.value)
                       }
                       margin="normal"
-                      disabled
                       InputLabelProps={{ style: { color: "#ccc" } }}
-                      InputProps={{ style: { color: "white" } }}
+                      InputProps={{
+                        style: { color: "white" },
+                        readOnly: true,     // ✅ replaced disabled
+                      }}
                       sx={{
                         "& .MuiOutlinedInput-root": {
-                          "& fieldset": { borderColor: "#ffcc80" }, // default border
-                          "&:hover fieldset": { borderColor: "#ffa726" }, // hover border
-                          "&.Mui-focused fieldset": { borderColor: "#ff9800" }, // focused border
+                          "& fieldset": { borderColor: "#ffcc80" },
+                          "&:hover fieldset": { borderColor: "#ffa726" },
+                          "&.Mui-focused fieldset": { borderColor: "#ff9800" },
                         },
                       }}
                     />
+
 
                     <TextField
                       fullWidth

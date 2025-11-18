@@ -13,6 +13,8 @@ import RateEntry from "./components/RateEntry";
 import NewArrivals from "./components/newarrivals/NewArrivals"; // 👈 customer view
 import ManageNewArrivals from "./components/newarrivals/ManageNewArrivals"; // 👈 admin upload/manage
 import MyPlans from "./components/MyPlans";
+import PlanDetails from "./components/PlanDetails";
+
 
 // Mock banner images for demonstration
 const BANNERS = {
@@ -68,6 +70,8 @@ function App() {
       <Route path="/rateentry" element={<RateEntry />} />
       <Route path="/otp" element={<OTP />} />
       <Route path="/my-plans" element={<MyPlans />} />
+      <Route path="/plan-details/:id" element={<PlanDetails />} />
+
 
       {/* Create Plan */}
       <Route

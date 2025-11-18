@@ -2,16 +2,15 @@ import db from "../config/db.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
+// ---------- Utility ----------
 function formatDateTime(date = new Date()) {
   return date.toISOString().slice(0, 19).replace("T", " ");
 }
-
-// ✅ Safe value: undefined → null
 const safe = (val, def = null) => (val === undefined || val === null ? def : val);
 
-// -----------------------------
+// -------------------------------------------------------------
 // Get all payments (limit 20)
-// -----------------------------
+// -------------------------------------------------------------
 export const getAllPayments = async (req, res) => {
   try {
     const { membership_id, branch_id, status } = req.query;
@@ -45,9 +44,9 @@ export const getAllPayments = async (req, res) => {
   }
 };
 
-// -----------------------------
+// -------------------------------------------------------------
 // Manual Payment (Cash/Bank Transfer)
-// -----------------------------
+// -------------------------------------------------------------
 export const createPayment = async (req, res) => {
   const conn = await db.getConnection();
   await conn.beginTransaction();
@@ -107,20 +106,23 @@ export const createPayment = async (req, res) => {
 
       finalMembershipId = memberResult.insertId;
       var totalInstallments = seqRow[0].no_of_inst;
+
+      // 🔹 Generate all installments
+      const now = formatDateTime();
+      for (let i = 1; i <= totalInstallments; i++) {
+        await conn.execute(
+          `INSERT INTO installments (membership_id, installment_no, amount, status, created_time)
+           VALUES (?, ?, ?, 'pending', ?)`,
+          [finalMembershipId, i, amount, now]
+        );
+      }
     } else {
       const [m] = await conn.execute("SELECT member_no, no_of_inst FROM scheme_memberships WHERE id=?", [finalMembershipId]);
       finalMemberNo = m.length ? m[0].member_no : null;
       var totalInstallments = m.length ? m[0].no_of_inst : null;
     }
 
-    // 🔹 Check duplicate receipt_no
-    const [dupCheck] = await conn.execute("SELECT id FROM scheme_payments WHERE receipt_no=?", [generatedReceiptNo]);
-    if (dupCheck.length > 0) {
-      await conn.rollback();
-      return res.json({ success: true, duplicate: true, payment_id: dupCheck[0].id, message: "Duplicate receipt ignored" });
-    }
-
-    // 🔹 Determine next installment number
+    // 🔹 Determine next installment
     const [paidCount] = await conn.execute(
       "SELECT COUNT(*) AS count FROM scheme_payments WHERE membership_id=? AND status='success'",
       [finalMembershipId]
@@ -161,8 +163,15 @@ export const createPayment = async (req, res) => {
       ]
     );
 
-    // 🔹 Update membership status
+    // 🔹 Update installment record
     const now = formatDateTime();
+    await conn.execute(
+      `UPDATE installments SET status='paid', paid_date=?, last_modified=? 
+       WHERE membership_id=? AND installment_no=?`,
+      [now, now, finalMembershipId, nextInstallmentNo]
+    );
+
+    // 🔹 Update membership status
     if (totalInstallments && nextInstallmentNo >= totalInstallments) {
       await conn.execute("UPDATE scheme_memberships SET status='completed', last_modified=? WHERE id=?", [now, finalMembershipId]);
     } else {
@@ -187,119 +196,241 @@ export const createPayment = async (req, res) => {
   }
 };
 
-// -----------------------------
-// Razorpay - Verify Payment
-// -----------------------------
-export const verifyPayment = async (req, res) => {
+// -------------------------------------------------------------
+// Join Plan + Create Membership + Initial Installments
+// -------------------------------------------------------------
+export const joinPlanPayment = async (req, res) => {
   const conn = await db.getConnection();
   await conn.beginTransaction();
 
   try {
-    let { razorpay_order_id, razorpay_payment_id, razorpay_signature, membership_id, group_id, customer_user_id, amount, branch_id } = req.body;
+    let { plan_id, group_id, customer_user_id, branch_id, amount } = req.body;
+    console.log(customer_user_id);
+    branch_id = branch_id || null;
 
-    razorpay_order_id = safe(razorpay_order_id);
-    razorpay_payment_id = safe(razorpay_payment_id);
-    razorpay_signature = safe(razorpay_signature);
-    membership_id = safe(membership_id);
-    group_id = safe(group_id);
-    customer_user_id = safe(customer_user_id);
-    branch_id = safe(branch_id);
-    amount = safe(amount, 0);
-
-    // ✅ Verify signature
-    const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
-    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const generated_signature = hmac.digest("hex");
-
-    if (generated_signature !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Invalid payment signature" });
+    if (!plan_id || !customer_user_id ) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    // ✅ Prevent duplicate payment
-    const [existing] = await conn.execute(
-      "SELECT id, membership_id, receipt_no FROM scheme_payments WHERE razorpay_payment_id=?",
-      [razorpay_payment_id]
+    const generatedReceiptNo = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // 🔹 Fetch or init group sequence
+    let [seqRow] = await conn.execute(
+      `SELECT gs.last_number, sg.no_of_inst
+       FROM group_sequences gs
+       JOIN scheme_groups sg ON sg.id = gs.group_id
+       WHERE gs.group_id = ? FOR UPDATE`,
+      [group_id]
     );
-    if (existing.length > 0) {
-      await conn.rollback();
-      return res.json({
-        success: true,
-        duplicate: true,
-        payment_id: existing[0].id,
-        membership_id: existing[0].membership_id,
-        receipt_no: existing[0].receipt_no,
-        message: "Payment already recorded",
-      });
-    }
+    console.log(seqRow);
+    if (seqRow.length === 0) {
+      const [groupInfo] = await conn.execute("SELECT no_of_inst FROM scheme_groups WHERE id=?", [group_id]);
+      if (groupInfo.length === 0) throw new Error("Invalid group_id");
 
-    let finalMembershipId = membership_id;
-    let finalMemberNo = null;
-    const generatedReceiptNo = `RCPT-${Date.now()}`;
-
-    // 🔹 Auto-create membership if missing
-    if (!finalMembershipId) {
-      const [seqRow] = await conn.execute(
-        "SELECT last_number, no_of_inst FROM group_sequences WHERE group_id=? FOR UPDATE",
+      await conn.execute("INSERT INTO group_sequences (group_id, last_number) VALUES (?, 0)", [group_id]);
+      [seqRow] = await conn.execute(
+        `SELECT gs.last_number, sg.no_of_inst
+         FROM group_sequences gs
+         JOIN scheme_groups sg ON sg.id = gs.group_id
+         WHERE gs.group_id = ? FOR UPDATE`,
         [group_id]
       );
-      if (seqRow.length === 0) throw new Error("Group sequence not initialized");
-
-      const newNumber = seqRow[0].last_number + 1;
-      finalMemberNo = `GRP${group_id}-${newNumber}`;
-      await conn.execute("UPDATE group_sequences SET last_number=? WHERE group_id=?", [newNumber, group_id]);
-
-      const [memberResult] = await conn.execute(
-        `INSERT INTO scheme_memberships 
-         (group_id, customer_user_id, member_no, status, created_time, branch_id) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [group_id, customer_user_id, finalMemberNo, "active", formatDateTime(), branch_id]
-      );
-
-      finalMembershipId = memberResult.insertId;
-      var totalInstallments = seqRow[0].no_of_inst;
-    } else {
-      const [m] = await conn.execute("SELECT member_no, no_of_inst FROM scheme_memberships WHERE id=?", [finalMembershipId]);
-      finalMemberNo = m.length ? m[0].member_no : null;
-      var totalInstallments = m.length ? m[0].no_of_inst : null;
     }
 
-    // 🔹 Determine next installment number
-    const [paidCount] = await conn.execute(
-      "SELECT COUNT(*) AS count FROM scheme_payments WHERE membership_id=? AND status='success'",
-      [finalMembershipId]
-    );
-    const nextInstallmentNo = (paidCount[0].count || 0) + 1;
-
-    // 🔹 Insert payment
+    // 🔹 Create membership
+    const newNumber = seqRow[0].last_number + 1;
+    const totalInstallments = seqRow[0].no_of_inst;
+    const memberNo = `GRP${group_id}-${newNumber}`;
     const now = formatDateTime();
-    const [result] = await conn.execute(
-      `INSERT INTO scheme_payments 
-       (receipt_no, receipt_date, membership_id, receipt_type, amount, mode_primary, status, created_time, branch_id, razorpay_payment_id, installment_no)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [generatedReceiptNo, now, finalMembershipId, "installment", amount, "razorpay", "success", now, branch_id, razorpay_payment_id, nextInstallmentNo]
+
+    await conn.execute("UPDATE group_sequences SET last_number=? WHERE group_id=?", [newNumber, group_id]);
+    const [memberResult] = await conn.execute(
+      `INSERT INTO scheme_memberships 
+        (group_id, customer_user_id, member_no, status, join_date, branch_id, collection_type) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [group_id, customer_user_id, memberNo, "active", now, branch_id, "direct"]
     );
 
-    // 🔹 Update membership status
-    if (totalInstallments && nextInstallmentNo >= totalInstallments) {
-      await conn.execute("UPDATE scheme_memberships SET status='completed', last_modified=? WHERE id=?", [now, finalMembershipId]);
-    } else {
-      await conn.execute("UPDATE scheme_memberships SET last_modified=? WHERE id=?", [now, finalMembershipId]);
+    const membershipId = memberResult.insertId;
+
+    // 🔹 Create all installments
+    for (let i = 1; i <= totalInstallments; i++) {
+      const due = new Date();
+      due.setMonth(due.getMonth() + i - 1);
+
+      const dueDate = due.toISOString().slice(0, 19).replace("T", " ");
+      await conn.execute(
+        `INSERT INTO installments (membership_id, installment_no, due_date, amount, status, created_time)
+         VALUES (?, ?, ?, ?, 'pending', ?)`,
+        [membershipId, i, dueDate, amount, now]
+      );
+    } 
+
+    // 🔹 Insert first payment + mark installment
+    const [paymentResult] = await conn.execute(
+      `INSERT INTO scheme_payments 
+        (receipt_no, receipt_date, membership_id, receipt_type, amount, mode_primary, status, created_time, branch_id, installment_no)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [generatedReceiptNo, now, membershipId, "installment", amount, "direct", "completed", now, branch_id, 1]
+    );
+    await conn.execute(
+      `UPDATE installments SET status='paid', paid_date=?, updated_at=? 
+       WHERE membership_id=? AND installment_no=?`,
+      [now, now, membershipId, 1]
+    );
+
+    if (totalInstallments === 1) {
+      await conn.execute(
+        "UPDATE scheme_memberships SET status='completed', last_modified=? WHERE id=?",
+        [now, membershipId]
+      );
     }
 
     await conn.commit();
 
     res.json({
       success: true,
-      membership_id: finalMembershipId,
-      member_no: finalMemberNo,
-      payment_id: result.insertId,
-      installment_no: nextInstallmentNo,
-      message: "Payment verified & recorded",
+      message: "Plan joined and payment recorded",
+      membership_id: membershipId,
+      member_no: memberNo,
+      transaction_id: generatedReceiptNo,
+      payment_id: paymentResult.insertId,
     });
   } catch (err) {
     await conn.rollback();
-    console.error("❌ Error in verifyPayment:", err);
-    res.status(500).json({ message: err.message });
+    console.error("❌ Error in joinPlanPayment:", err);
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    conn.release();
+  }
+};
+
+// -------------------------------------------------------------
+// Pay Installment
+// -------------------------------------------------------------
+export const payInstallment = async (req, res) => {
+  const conn = await db.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    const { membership_id, amount, branch_id, mode_primary = "direct" } = req.body;
+    const safeBranch = branch_id || null;
+
+    if (!membership_id || !amount) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Fetch membership + group info
+    const [membership] = await conn.execute(
+      "SELECT group_id, status FROM scheme_memberships WHERE id = ?",
+      [membership_id]
+    );
+    if (membership.length === 0) throw new Error("Membership not found");
+
+    // Determine next installment
+    const [countResult] = await conn.execute(
+      "SELECT COUNT(*) AS paidCount FROM scheme_payments WHERE membership_id = ?",
+      [membership_id]
+    );
+    const nextInstallment = countResult[0].paidCount + 1;
+    const receiptNo = `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const now = formatDateTime();
+
+    // Insert payment
+    const [result] = await conn.execute(
+      `INSERT INTO scheme_payments 
+         (receipt_no, receipt_date, membership_id, receipt_type, amount, mode_primary, status, created_time, branch_id, installment_no)
+       VALUES (?, ?, ?, 'installment', ?, ?, 'completed', ?, ?, ?)`,
+      [receiptNo, now, membership_id, amount, mode_primary, now, safeBranch, nextInstallment]
+    );
+
+    // Update installment
+    await conn.execute(
+      `UPDATE installments 
+       SET status='paid', paid_date=?, last_modified=? 
+       WHERE membership_id=? AND installment_no=?`,
+      [now, now, membership_id, nextInstallment]
+    );
+
+    // Optional: check if completed
+    const [instCount] = await conn.execute(
+      "SELECT no_of_inst FROM scheme_groups g JOIN scheme_memberships m ON m.group_id = g.id WHERE m.id = ?",
+      [membership_id]
+    );
+    const total = instCount[0]?.no_of_inst;
+    if (nextInstallment >= total) {
+      await conn.execute(
+        "UPDATE scheme_memberships SET status='completed', last_modified=? WHERE id=?",
+        [now, membership_id]
+      );
+    }
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: "Installment paid successfully",
+      payment_id: result.insertId,
+      installment_no: nextInstallment,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error("❌ Error in payInstallment:", err);
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    conn.release();
+  }
+};
+
+// -------------------------------------------------------------
+// Adjust Installment (Manual correction)
+// -------------------------------------------------------------
+export const adjustInstallment = async (req, res) => {
+  const conn = await db.getConnection();
+  await conn.beginTransaction();
+
+  try {
+    const { membership_id, installment_no, new_amount, remarks, status } = req.body;
+
+    if (!membership_id || !installment_no) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const now = formatDateTime();
+
+    // Update installment table
+    await conn.execute(
+      `UPDATE installments 
+       SET amount = COALESCE(?, amount),
+           status = COALESCE(?, status),
+           remarks = COALESCE(?, remarks),
+           last_modified = ?
+       WHERE membership_id = ? AND installment_no = ?`,
+      [new_amount, status, remarks, now, membership_id, installment_no]
+    );
+
+    // Reflect adjustment in payments if applicable
+    if (status === "adjusted") {
+      await conn.execute(
+        `UPDATE scheme_payments 
+         SET amount = ?, remarks = CONCAT(IFNULL(remarks, ''), ' | Adjusted: ', ?), last_modified=? 
+         WHERE membership_id=? AND installment_no=?`,
+        [new_amount, remarks || "Installment adjusted", now, membership_id, installment_no]
+      );
+    }
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: "Installment adjusted successfully",
+      membership_id,
+      installment_no,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error("❌ Error in adjustInstallment:", err);
+    res.status(500).json({ success: false, message: err.message });
   } finally {
     conn.release();
   }

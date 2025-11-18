@@ -183,7 +183,7 @@ const NewPlan = ({ onBack }) => {
         {plans.length > 0 ? (
           <Grid container spacing={4}>
             {plans.map((plan, index) => (
-              <Grid item xs={12} md={6} key={plan.id}>
+              <Grid size={{ xs: 12, md: 6 }} key={plan.id}>
                 <motion.div
                   initial={{ opacity: 0, y: 60, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}

@@ -233,7 +233,7 @@ const Home = () => {
             TODAY'S RATE
           </Typography>
           <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Card
                 sx={{
                   bgcolor: "#3a004d",
@@ -256,7 +256,7 @@ const Home = () => {
                 </Typography>
               </Card>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <Card
                 sx={{
                   bgcolor: "#4b0066",
@@ -359,7 +359,7 @@ const Home = () => {
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           <Grid container spacing={2} p={2} justifyContent="center">
             {features.map((f, idx) => (
-              <Grid item xs={6} sm={4} md={3} key={idx}>
+              <Grid size={{ xs: 6, sm: 4, md: 3 }} key={idx}>
                 <motion.div
                   variants={itemVariants}
                   whileHover={{ scale: 1.1, y: -3, boxShadow: "0 6px 20px rgba(255,215,0,0.5)" }}
