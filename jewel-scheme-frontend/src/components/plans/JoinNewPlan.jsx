@@ -22,10 +22,11 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 const JoinNewPlan = () => {
   const { planId } = useParams();
   const navigate = useNavigate();
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
   const [userData, setUserData] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -44,30 +45,29 @@ const JoinNewPlan = () => {
     severity: "error",
   });
 
-  // 🧠 Fetch logged-in user details from sessionStorage
+  // Fetch user session data
   useEffect(() => {
     const name = sessionStorage.getItem("name");
     const mobile = sessionStorage.getItem("mobile");
     const email = sessionStorage.getItem("email");
+
     setUserData({ name, mobile, email });
-    setFormData((prev) => ({ ...prev, fullName: name }));
+    setFormData((p) => ({ ...p, fullName: name }));
   }, []);
 
-  // 📦 Fetch selected plan details
- useEffect(() => {
-  const fetchPlanDetails = async () => {
-    if (!planId) return;
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/scheme-groups/${planId}`);
-      // console.log(res.data.data);
-      setSelectedPlan(res.data.data);
-    } catch (err) {
-      console.error("❌ Error fetching plan details:", err);
-    }
-  };
-  fetchPlanDetails();
-}, [planId, API_BASE_URL]);
-
+  // Fetch plan details
+  useEffect(() => {
+    const fetchPlan = async () => {
+      if (!planId) return;
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/scheme-groups/${planId}`);
+        setSelectedPlan(res.data.data);
+      } catch (err) {
+        console.error("❌ Fetch plan error:", err);
+      }
+    };
+    fetchPlan();
+  }, [planId, API_BASE_URL]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -81,56 +81,73 @@ const JoinNewPlan = () => {
     formData.state &&
     formData.pincode;
 
-  // ✅ Updated to use your new backend route `/api/payments/join-plan`
+  // -----------------------------
+  // 🚀 JOIN FLOW (Payment -> Join)
+  // -----------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       const userId = sessionStorage.getItem("userId");
-      const payload = {
-        plan_id: planId,
-        group_id: selectedPlan?.id 
-              || selectedPlan?.group_code 
-              || planId,
-        customer_user_id: userId,
-        branch_id: selectedPlan?.branch_id || 1,
-        amount: selectedPlan?.inst_amount || selectedPlan?.amount_per_inst || 500,
-        notes: `PAN: ${formData.panCard}, Address: ${formData.address}, Area: ${formData.area}, City: ${formData.city}, State: ${formData.state}, Pincode: ${formData.pincode}, Country: ${formData.country}`,
-      };
 
-      const res = await axios.post(`${API_BASE_URL}/api/scheme-payments/join-plan`, payload);
+      // Step 1: Create payment
+      const payRes = await axios.post(
+        
+        `${API_BASE_URL}/api/scheme-payments/payment`,
+        
+        {
+          customer_user_id: userId,
+          group_id: selectedPlan?.id,
+          amount: selectedPlan?.inst_amount || selectedPlan?.amount_per_inst || 500,
+          branch_id: selectedPlan?.branch_id || 1,
+        }
+        
+      );
 
 
-      if (res.data.success) {
-        setSnackbar({
-          open: true,
-          message: `✅ Joined successfully! TXN ID: ${res.data.transaction_id}`,
-          severity: "success",
-        });
-
-        // Navigate to payment confirmation page
-        navigate(`/plans/payment/${res.data.membership_id}`, {
-            state: {
-              type: "join",
-              plan: selectedPlan,
-              group_id: selectedPlan?.id || selectedPlan?.group_code || planId,
-              membership_id: res.data.membership_id,   // backend should return it
-            },
-          });
-
-      } else {
-        setSnackbar({
-          open: true,
-          message: "❌ Failed to join plan. Please try again.",
-          severity: "error",
-        });
+      if (!payRes.data.success) {
+        throw new Error("Payment failed");
       }
-    } catch (err) {
-      console.error("❌ Server error while joining plan:", err);
+
+      const paymentId = payRes.data.payment_id;
+
+      // Step 2: Join plan AFTER payment success
+      const joinRes = await axios.post(
+        `${API_BASE_URL}/api/scheme-payments/join-after-payment`,
+        {
+          payment_id: paymentId,
+          customer_user_id: userId,
+          group_id: selectedPlan?.id,
+          branch_id: selectedPlan?.branch_id || 1,
+        }
+      );
+
+      if (!joinRes.data.success) {
+        throw new Error("Join failed");
+      }
+
+      // Success UI
       setSnackbar({
         open: true,
-        message: "❌ Server error while joining plan",
+        message: `Joined successfully! Member No: ${joinRes.data.member_no}`,
+        severity: "success",
+      });
+
+      navigate(`/plans/payment/${joinRes.data.membership_id}`, {
+        state: {
+          type: "join",
+          plan: selectedPlan,
+          membership_id: joinRes.data.membership_id,
+          group_id: selectedPlan?.id,
+        },
+      });
+
+    } catch (err) {
+      console.error("❌ JOIN ERROR:", err);
+      setSnackbar({
+        open: true,
+        message: "❌ Failed to join plan",
         severity: "error",
       });
     } finally {
@@ -138,10 +155,10 @@ const JoinNewPlan = () => {
     }
   };
 
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === "clickaway") return;
+
+
+  const handleCloseSnackbar = () =>
     setSnackbar((prev) => ({ ...prev, open: false }));
-  };
 
   const indianStates = [
     "Andhra Pradesh",
@@ -159,10 +176,10 @@ const JoinNewPlan = () => {
     <Box className="min-h-screen flex flex-col bg-gray-100">
       <AppBar position="static" sx={{ bgcolor: "white", color: "rgb(127 29 29)", boxShadow: 1 }}>
         <Toolbar sx={{ justifyContent: "space-between" }}>
-          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => navigate(-1)}>
+          <IconButton edge="start" color="inherit" onClick={() => navigate(-1)}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
             Contact
           </Typography>
           <Box sx={{ width: 48 }} />
@@ -175,8 +192,8 @@ const JoinNewPlan = () => {
           <Typography variant="h6" sx={{ fontWeight: "bold", mt: 2 }}>
             Contact Details
           </Typography>
-          <Typography variant="body2">{userData?.mobile}</Typography>
-          <Typography variant="body2">{userData?.email}</Typography>
+          <Typography>{userData?.mobile}</Typography>
+          <Typography>{userData?.email}</Typography>
         </Box>
 
         <Paper elevation={2} sx={{ p: 3, borderRadius: "0.5rem" }}>
@@ -194,7 +211,7 @@ const JoinNewPlan = () => {
               <Autocomplete
                 options={indianStates}
                 value={formData.state || null}
-                onChange={(e, newValue) => setFormData({ ...formData, state: newValue })}
+                onChange={(e, v) => setFormData({ ...formData, state: v })}
                 renderInput={(params) => <TextField {...params} label="State" required />}
                 fullWidth
               />
@@ -205,8 +222,8 @@ const JoinNewPlan = () => {
 
             <Button
               type="submit"
-              variant="contained"
               fullWidth
+              variant="contained"
               disabled={isLoading || !isFormValid()}
               sx={{ bgcolor: "rgb(127 29 29)" }}
             >
@@ -215,15 +232,8 @@ const JoinNewPlan = () => {
           </Box>
         </Paper>
 
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
-            {snackbar.message}
-          </Alert>
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+          <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
         </Snackbar>
       </Container>
     </Box>

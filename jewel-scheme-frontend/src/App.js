@@ -14,6 +14,8 @@ import NewArrivals from "./components/newarrivals/NewArrivals"; // 👈 customer
 import ManageNewArrivals from "./components/newarrivals/ManageNewArrivals"; // 👈 admin upload/manage
 import MyPlans from "./components/MyPlans";
 import PlanDetails from "./components/PlanDetails";
+import PaymentHistory from "./components/payment-history/paymentHistoryList";
+import PaymentHistoryDetails from "./components/payment-history/PaymentHistoryDetails";
 
 
 // Mock banner images for demonstration
@@ -57,7 +59,7 @@ function App() {
   };
 
   const handleJoinNow = (planId) => {
-    console.log("Join now for plan:", planId);
+    // console.log("Join now for plan:", planId);
   };
 
   return (
@@ -71,6 +73,8 @@ function App() {
       <Route path="/otp" element={<OTP />} />
       <Route path="/my-plans" element={<MyPlans />} />
       <Route path="/plan-details/:id" element={<PlanDetails />} />
+      <Route path ='/paymenthistory' element ={<PaymentHistory />}/>
+      <Route path ='/payment-history/:userId' element ={<PaymentHistoryDetails />}/>
 
 
       {/* Create Plan */}

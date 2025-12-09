@@ -9,7 +9,7 @@ async function sendOtpEmail(toEmail, otp) {
       service: "gmail",
       auth: {
         user: "bsgopal0@gmail.com",
-        pass: "nytc funo civh qhdn" // Use your app password
+        pass: "nytc funo civh qhdn"
       }
     });
 
@@ -60,13 +60,13 @@ export const register = async (req, res) => {
       nominee_mobile,
       nominee_relation,
       title,
-      role // Added for SuperAdmin to specify role
+      role
     } = req.body;
-      
+
     if (!title) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Title is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Title is required"
       });
     }
 
@@ -78,15 +78,15 @@ export const register = async (req, res) => {
     const aadhaar = req.body.aadhaar || null;
     const pan = req.body.pan || null;
 
-    
+
     const [existing] = await db.execute("SELECT id FROM users WHERE mobile=? OR email=?", [mobile, email]);
     if (existing.length > 0)
       return res.status(400).json({ success: false, message: "Mobile or Email already exists" });
 
-   
+
     const password_hash = await bcrypt.hash(password, 10);
 
-   
+
     const userRole = role || "User";
 
     // Insert user - BOTH cases start as inactive until OTP verification
@@ -120,10 +120,10 @@ export const register = async (req, res) => {
     // Generate and send OTP for verification
     await generateAndSendOTP(userId, email);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Registration successful. OTP sent to email for verification.",
-      userId 
+      userId
     });
   } catch (err) {
     console.error("Registration error:", err);
@@ -135,38 +135,48 @@ export const register = async (req, res) => {
 export const verifyOtp = async (req, res) => {
   try {
     const { userId, otp } = req.body;
+
     if (!userId || !otp)
       return res.status(400).json({ success: false, message: "User ID and OTP required" });
 
+    // DEBUG LOG
+    console.log("User entered OTP:", otp);
+
     const [rows] = await db.execute(
-      "SELECT * FROM otps WHERE user_id=? AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",
+      `SELECT * FROM otps 
+       WHERE user_id = ? AND expires_at > NOW()
+       ORDER BY created_at DESC 
+       LIMIT 1`,
       [userId]
     );
 
     if (rows.length === 0)
-      return res.status(400).json({ success: false, message: "No valid OTP found" });
+      return res.status(400).json({ success: false, message: "OTP expired or not found" });
 
-    const hashedOtp = rows[0].otp;
-    const isValid = await bcrypt.compare(otp, hashedOtp);
+    console.log("DB OTP HASH:", rows[0].otp);
+
+    const isValid = await bcrypt.compare(otp.toString(), rows[0].otp);
+
+    console.log("OTP Match Status:", isValid);
 
     if (!isValid)
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
 
-    // ✅ Activate user only after successful OTP verification
     await db.execute("UPDATE users SET status='active' WHERE id=?", [userId]);
-
-    // Delete OTP
     await db.execute("DELETE FROM otps WHERE id=?", [rows[0].id]);
 
-    res.json({ 
-      success: true, 
-      message: "OTP verified successfully. Account activated."
+    return res.json({
+      success: true,
+      message: "OTP verified successfully. Account activated.",
     });
+
   } catch (err) {
     console.error("OTP verification error:", err);
-    res.status(500).json({ success: false, message: "Server error", error: err.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
 
 // ----------------- Resend OTP -----------------
 export const resendOtp = async (req, res) => {
@@ -187,7 +197,7 @@ export const login = async (req, res) => {
   try {
     const { mobile, password } = req.body;
 
-     const [rows] = await db.execute("SELECT * FROM users WHERE mobile=?", [mobile]);
+    const [rows] = await db.execute("SELECT * FROM users WHERE mobile=?", [mobile]);
     if (rows.length === 0)
       return res.status(401).json({ success: false, message: "Invalid mobile or password" });
 

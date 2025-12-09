@@ -5,6 +5,7 @@ import {
   List,
   ListItem,
   ListItemIcon,
+  ListItemButton,
   ListItemText,
   Typography,
 } from "@mui/material";
@@ -37,29 +38,29 @@ function Sidemenu({ open, onClose }) {
 
     ...(role === "SuperAdmin" || role === "Admin"
       ? [
-          {
-            text: "Rate Entry",
-            icon: <NewReleasesIcon />,
-            action: () => navigate("/rateentry"),
-          },
-          {
-            text: "New Arrivals",
-            icon: <StoreIcon />,
-            action: () => navigate("/manage-newarrivals"),
-          },
-          {
-            text: "Payment History",
-            icon: <HistoryIcon />,
-            action: () => navigate("/paymenthistory"),
-          },
-        ]
+        {
+          text: "Rate Entry",
+          icon: <NewReleasesIcon />,
+          action: () => navigate("/rateentry"),
+        },
+        {
+          text: "New Arrivals",
+          icon: <StoreIcon />,
+          action: () => navigate("/manage-newarrivals"),
+        },
+        {
+          text: "Payment History",
+          icon: <HistoryIcon />,
+          action: () => navigate("/paymenthistory"),
+        },
+      ]
       : [
-          {
-            text: "New Arrivals",
-            icon: <NewReleasesIcon />,
-            action: () => navigate("/newarrivals"),
-          },
-        ]),
+        {
+          text: "New Arrivals",
+          icon: <NewReleasesIcon />,
+          action: () => navigate("/newarrivals"),
+        },
+      ]),
 
     { text: "My Security Settings", icon: <SecurityIcon /> },
     { text: "About Us", icon: <InfoIcon /> },
@@ -201,16 +202,19 @@ function Sidemenu({ open, onClose }) {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: index * 0.08, duration: 0.4 }}
             >
-              <ListItem button onClick={() => handleItemClick(item.action)}>
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                  }}
-                />
+              <ListItem disablePadding>
+                <ListItemButton onClick={() => handleItemClick(item.action)}>
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontSize: "0.95rem",
+                      fontWeight: 600,
+                    }}
+                  />
+                </ListItemButton>
               </ListItem>
+
             </motion.div>
           ))}
         </List>

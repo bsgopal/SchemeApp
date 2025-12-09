@@ -3,10 +3,7 @@ import db from "../config/db.js"; // adjust to your DB config path
 
 const router = express.Router();
 
-/**
- * GET /api/my-plans/:userId
- * Returns all schemes a user has joined
- */
+
 router.get("/:userId", async (req, res) => {
   const userId = req.params.userId;
   const sort = req.query.sort || "DESC";
@@ -35,9 +32,7 @@ router.get("/:userId", async (req, res) => {
       [userId, limit, offset]
     );
 
-    console.log("Fetched plans:", rows); // debug
     res.json(rows);
-    console.log(rows);
   } catch (err) {
     console.error("Error fetching plans:", err);
     res.status(500).json({ error: "Failed to fetch plans" });

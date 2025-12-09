@@ -40,6 +40,8 @@ const NewPlan = ({ onBack }) => {
 
   const userRole = (sessionStorage.getItem("role") || "").toLowerCase();
 
+ 
+
   // 🔹 join handler
   const handleJoinNow = (planId) => {
     navigate(`/plans/joinnewplan/${planId}`);

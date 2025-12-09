@@ -1,75 +1,93 @@
 import db from "../config/db.js";
+import multer from "multer";
+import path from "path";
 
-// 📌 Middleware: check role
-export function checkAdmin(req, res, next) {
-  const role = req.headers["x-role"];
-  if (role === "Admin" || role === "SuperAdmin") {
-    next();
-  } else {
-    res.status(403).json({ message: "Forbidden: Only Admins can perform this action" });
+// ---------------------- MULTER STORAGE ----------------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/newarrivals");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
   }
-}
+});
 
-// 📌 GET all new arrivals
+export const uploadNewArrivalImage = multer({ storage }).single("image");
+
+// ---------------------- GET NEW ARRIVALS ----------------------
 export async function getNewArrivals(req, res) {
   try {
     const [rows] = await db.query("SELECT * FROM new_arrivals ORDER BY created_at DESC");
-    res.json(rows);
+
+    // Convert DB snake_case → camelCase for frontend
+    const formatted = rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      price: r.price,
+      offer: r.offer,
+      imageUrl: r.image_url,   // IMPORTANT
+      createdAt: r.created_at
+    }));
+
+    res.json(formatted);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
-// 📌 ADD new arrival
+// ---------------------- ADD NEW ARRIVAL ----------------------
 export async function addNewArrival(req, res) {
   try {
-    const { title, price, offer } = req.body;
+    const { title, price, offer, image_url } = req.body;
 
-    if (!title || !price || !req.file) {
-      return res.status(400).json({ message: "Title, Price, and Image are required" });
+    // If multer file uploaded
+    const uploadedImage = req.file ? `/uploads/newarrivals/${req.file.filename}` : null;
+
+    const finalImage = uploadedImage || image_url;
+
+    if (!title || !price || !finalImage) {
+      return res.status(400).json({ message: "Title, Price and Image are required" });
     }
-
-    const image_url = `/uploads/newarrivals/${req.file.filename}`;
 
     await db.query(
       "INSERT INTO new_arrivals (title, price, offer, image_url) VALUES (?, ?, ?, ?)",
-      [title, price, offer || null, image_url]
+      [title, price, offer || null, finalImage]
     );
 
-    res.json({ message: "New arrival added successfully", image_url });
+    res.json({ message: "New arrival added", imageUrl: finalImage });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
-// 📌 UPDATE new arrival
+// ---------------------- UPDATE ----------------------
 export async function updateNewArrival(req, res) {
   try {
     const { id } = req.params;
-    const { title, price, offer } = req.body;
-    let image_url = req.body.image_url;
+    const { title, price, offer, image_url } = req.body;
 
-    if (req.file) {
-      image_url = `/uploads/newarrivals/${req.file.filename}`;
-    }
+    const uploadedImage = req.file ? `/uploads/newarrivals/${req.file.filename}` : null;
+    const finalImage = uploadedImage || image_url;
 
     await db.query(
       "UPDATE new_arrivals SET title=?, price=?, offer=?, image_url=? WHERE id=?",
-      [title, price, offer, image_url, id]
+      [title, price, offer, finalImage, id]
     );
 
-    res.json({ message: "New arrival updated successfully" });
+    res.json({ message: "Updated successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
 
-// 📌 DELETE new arrival
+// ---------------------- DELETE ----------------------
 export async function deleteNewArrival(req, res) {
   try {
     const { id } = req.params;
+
     await db.query("DELETE FROM new_arrivals WHERE id=?", [id]);
-    res.json({ message: "New arrival deleted successfully" });
+
+    res.json({ message: "Deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

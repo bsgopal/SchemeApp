@@ -20,13 +20,14 @@ import rates from "./routes/rates.js";
 import newArrivalsRoutes from "./routes/newArrivalsRoutes.js";   // ✅ Added
 import plansRoute from "./routes/plansRoute.js";
 import myPlansRoute from "./routes/myPlansRoute.js";
+import paymentRoutes from "./routes/paymentHistoryRoutes.js";
 
 
 
 const app = express();
 
 // ✅ Static folder for images
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", express.static("uploads"));
 
 // ✅ Middleware
 app.use(express.json());
@@ -61,7 +62,7 @@ app.use("/api/rates", rates);
 app.use("/api/newarrivals", newArrivalsRoutes);  // ✅ Added
 // app.use("/api/scheme-payments", schemePaymentsRoute);
 app.use("/api/my-plans", myPlansRoute);
-
+app.use("/api/payments", paymentRoutes);
 app.use("/api/plans", plansRoute);
 
 

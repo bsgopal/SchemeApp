@@ -1,51 +1,48 @@
+// =============================
+// routes/schemePayments.js
+// =============================
 import express from "express";
 import db from "../config/db.js";
 import {
-  getAllPayments,
   createPayment,
-  // createOrder,
-  // verifyPayment,
-  joinPlanPayment ,
+  joinPlanAfterPayment,
   payInstallment,
+  getPaymentHistory,
+  adjustInstallment
 } from "../controllers/schemePaymentsController.js";
 
 const router = express.Router();
 
-router.get("/", getAllPayments);
-router.post("/", createPayment); // Manual entry
-// router.post("/order", createOrder); // Razorpay order
-// router.post("/verify", verifyPayment); // Razorpay verify
-router.post("/join-plan", joinPlanPayment);
+// Step 1 → Create Payment
+router.post("/payment", createPayment);
+
+// Step 2 → Join After Payment
+router.post("/join-after-payment", joinPlanAfterPayment);
+
+// Pay future installments
 router.post("/pay-installment", payInstallment);
 
+// Payment history
+router.get("/history", getPaymentHistory);
 
-router.get("/:membershipId", async (req, res) => {
-  const { membershipId } = req.params;
+// Adjust installment
+router.post("/adjust", adjustInstallment);
 
-  try {
-    const [rows] = await db.execute(
-      `SELECT 
-         id, 
-         receipt_no,
-         amount, 
-         receipt_date AS date, 
-         status, 
-         installment_no 
-       FROM scheme_payments 
-       WHERE membership_id = ?
-       ORDER BY receipt_date DESC`,
-      [membershipId]
-    );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No payments found for this plan" });
+// Get installments by membership_id
+  router.get("/installments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const [rows] = await db.execute(
+        `SELECT * FROM installments WHERE membership_id=? ORDER BY installment_no ASC`,
+        [id]
+      );
+      res.json({ success: true, installments: rows });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
     }
+  });
 
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ Error fetching payments by membership:", err);
-    res.status(500).json({ message: "Failed to fetch payment history" });
-  }
-});
 
 export default router;

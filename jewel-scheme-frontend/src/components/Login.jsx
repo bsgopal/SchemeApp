@@ -115,7 +115,6 @@ function Login() {
         sessionStorage.setItem("isGuest", "false");
         navigate("/Home");
       }
-      console.log("Login response:", res.data);
     } catch (err) {
       if (err.response) setErrorMessage(err.response.data.message || "Login failed.");
       else if (err.request) setErrorMessage("No response from server.");
