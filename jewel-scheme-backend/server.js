@@ -21,6 +21,9 @@ import newArrivalsRoutes from "./routes/newArrivalsRoutes.js";   // ✅ Added
 import plansRoute from "./routes/plansRoute.js";
 import myPlansRoute from "./routes/myPlansRoute.js";
 import paymentRoutes from "./routes/paymentHistoryRoutes.js";
+import forgotPasswordRoutes from "./routes/forgotPasswordRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 
 
 
@@ -64,6 +67,10 @@ app.use("/api/newarrivals", newArrivalsRoutes);  // ✅ Added
 app.use("/api/my-plans", myPlansRoute);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/plans", plansRoute);
+app.use('/api/auth',forgotPasswordRoutes);
+
+app.use("/api/users", userRoutes);
+app.use("/api/wallet", walletRoutes);
 
 
 // ✅ Health Check

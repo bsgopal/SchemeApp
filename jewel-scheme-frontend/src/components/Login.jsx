@@ -253,7 +253,7 @@ function Login() {
 
         {/* Links */}
         <Box sx={{ display: "flex", justifyContent: "space-between", px: 1, mt: 1 }}>
-          <Link underline="hover" sx={{ color: "white", fontSize: 14, cursor: "pointer" }}>
+          <Link underline="hover" sx={{ color: "white", fontSize: 14, cursor: "pointer" }} onClick={() => navigate("/ForgotPassword")}>
             Forgot Password?
           </Link>
           <Link

@@ -16,7 +16,7 @@ const dbConfig = {
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  timezone: '+00:00',
+  timezone: "+05:30",
   charset: 'utf8mb4'
 };
 

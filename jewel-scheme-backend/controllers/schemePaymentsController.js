@@ -13,7 +13,7 @@ const safe = (v, d = null) => (v === undefined || v === null ? d : v);
 // ==========================================================
 export const createPayment = async (req, res) => {
 
-  
+
 
   let conn;
   try {
@@ -65,8 +65,8 @@ export const joinPlanAfterPayment = async (req, res) => {
     await conn.beginTransaction();
 
     const { payment_id, customer_user_id, group_id, branch_id } = req.body;
-    console.log(payment_id,customer_user_id,group_id,branch_id)
-    
+    console.log(payment_id, customer_user_id, group_id, branch_id)
+
     if (!payment_id || !customer_user_id || !group_id) {
       console.log("❗ JOIN RETURN 400: Missing required fields");
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -90,14 +90,14 @@ export const joinPlanAfterPayment = async (req, res) => {
       [group_id, customer_user_id]
     );
 
-      if (exist.length > 0) {
-        console.log("❗ JOIN RETURN 400: Already joined");
-        return res.status(400).json({
-          success: false,
-          message: "Already joined",
-          membership_id: exist[0].id,
-          member_no: exist[0].member_no,
-        });
+    if (exist.length > 0) {
+      console.log("❗ JOIN RETURN 400: Already joined");
+      return res.status(400).json({
+        success: false,
+        message: "Already joined",
+        membership_id: exist[0].id,
+        member_no: exist[0].member_no,
+      });
     }
     // Fetch group
     const [grp] = await conn.execute(
@@ -183,9 +183,25 @@ export const joinPlanAfterPayment = async (req, res) => {
     // attach payment to membership
     await conn.execute(
       `UPDATE scheme_payments
-       SET membership_id=?, inst_no=1
+       SET membership_id=?, inst_no=1,status='completed'
        WHERE id=?`,
       [membershipId, payment_id]
+    );
+    // 1️⃣ Get today's gold rate
+    const [rateRow] = await conn.execute("SELECT goldRate FROM rates WHERE id = 1");
+    const goldRate = rateRow.length ? rateRow[0].goldRate : null;
+
+    if (!goldRate) throw new Error("Gold rate not set today");
+
+    // 2️⃣ Calculate grams based on amount paid
+    const grams = instAmount / goldRate;
+
+    // 3️⃣ Update scheme_payments with gold rate + grams
+    await conn.execute(
+      `UPDATE scheme_payments 
+   SET gold_rate=?, grams=?
+   WHERE id=?`,
+      [goldRate, grams, payment_id]
     );
 
     await conn.commit();
@@ -253,6 +269,21 @@ export const payInstallment = async (req, res) => {
         instNo,
         customer_user_id || null,
       ]
+    );
+    // ⭐ Get today's gold rate
+    const [rateRow] = await conn.execute("SELECT goldRate FROM rates WHERE id = 1");
+    const goldRate = rateRow.length ? rateRow[0].goldRate : null;
+    if (!goldRate) throw new Error("Gold rate not set today");
+
+    // ⭐ Calculate grams
+    const grams = amount / goldRate;
+
+    // ⭐ Update payment row
+    await conn.execute(
+      `UPDATE scheme_payments 
+   SET gold_rate=?, grams=?
+   WHERE id=?`,
+      [goldRate, grams, p.insertId]
     );
 
     // mark installment paid

@@ -16,6 +16,11 @@ import MyPlans from "./components/MyPlans";
 import PlanDetails from "./components/PlanDetails";
 import PaymentHistory from "./components/payment-history/paymentHistoryList";
 import PaymentHistoryDetails from "./components/payment-history/PaymentHistoryDetails";
+import ForgotPassword from "./components/forgot-password/ForgotPassword";
+import VerifyForgotOtp from "./components/forgot-password/VerifyForgotOtp";
+import ResetPassword from "./components/forgot-password/ResetPassword";
+import Wallet from "./components/Features/Wallet";
+import Profile from "./components/Features/Profile";
 
 
 // Mock banner images for demonstration
@@ -33,10 +38,10 @@ function App() {
     const banner = newPlanData.banner
       ? newPlanData.banner
       : newPlanData.planType === "Premium"
-      ? BANNERS.premium
-      : newPlanData.jewelleryType === "All"
-      ? BANNERS.gold
-      : BANNERS.default;
+        ? BANNERS.premium
+        : newPlanData.jewelleryType === "All"
+          ? BANNERS.gold
+          : BANNERS.default;
 
     const newPlan = {
       id: Date.now(), // unique ID
@@ -73,8 +78,14 @@ function App() {
       <Route path="/otp" element={<OTP />} />
       <Route path="/my-plans" element={<MyPlans />} />
       <Route path="/plan-details/:id" element={<PlanDetails />} />
-      <Route path ='/paymenthistory' element ={<PaymentHistory />}/>
-      <Route path ='/payment-history/:userId' element ={<PaymentHistoryDetails />}/>
+      <Route path='/paymenthistory' element={<PaymentHistory />} />
+      <Route path='/payment-history/:userId' element={<PaymentHistoryDetails />} />
+
+      <Route path="/forgotPassword" element={<ForgotPassword />} />
+      <Route path="/verifyForgotOtp" element={<VerifyForgotOtp />} />
+      <Route path="/resetPassword" element={<ResetPassword />} />
+      <Route path="/wallet" element = {<Wallet />} />
+      <Route path="/profile" element = {<Profile />} />
 
 
       {/* Create Plan */}
