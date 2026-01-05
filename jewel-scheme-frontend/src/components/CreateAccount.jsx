@@ -227,7 +227,12 @@ function CreateAccount() {
   };
 
   return (
-    <Box sx={{ position: "relative", minHeight: "100vh", backgroundColor: "#1a0a3c" }}>
+    <Box sx={{
+      position: "relative", minHeight: "100vh", backgroundColor: "#1a0a3c", paddingTop: "env(safe-area-inset-top)",
+      paddingBottom: "env(safe-area-inset-bottom)",
+      paddingLeft: "env(safe-area-inset-left)",
+      paddingRight: "env(safe-area-inset-right)",
+    }}>
       <GoldShimmer />
 
       <IconButton

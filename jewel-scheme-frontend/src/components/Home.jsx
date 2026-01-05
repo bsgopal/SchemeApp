@@ -30,17 +30,62 @@ import { useNavigate } from "react-router-dom";
 import Sidemenu from "./Sidemenu";
 import { motion } from "framer-motion";
 
-const bannerImages = ["/images/banner1.png", "/images/banner2.png", "/images/banner3.png"];
+const bannerImages = ["/images/newBanner1.jpeg", "/images/newBanner2.jpeg", "/images/banner3.png"];
 
 const allFeatures = [
-  { label: "New Plan", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/newplan" },
-  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/my-plans" },
+  { label: "New Plan", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/newplan" },
+  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/my-plans" },
   // { label: "Pay EMA", icon: <PaymentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/payema" },
-  { label: "My Wallet", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/wallet" },
-  { label: "Offers", icon: <LocalOfferIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/offers" },
+  { label: "My Wallet", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/wallet" },
+  { label: "Offers", icon: <LocalOfferIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "User"], route: "/offers" },
   { label: "Create User", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin"], route: "/createaccount" },
   { label: "Create New Plans", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin"], route: "/createnewplan" },
   { label: "Collections", icon: <CollectionsIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["Agent"], route: "/collections" },
+  // 🔥 AGENT-ONLY FEATURES (ADD BELOW YOUR EXISTING FEATURES)
+
+  {
+    label: "Agent Dashboard",
+    icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/agent-dashboard"
+  },
+  {
+    label: "My Customers",
+    icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/agent-customers"
+  },
+  {
+    label: "Collect Installment",
+    icon: <PaymentIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/collect-installment"
+  },
+  {
+    label: "Agent Wallet",
+    icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/agent-wallet"
+  },
+  {
+    label: "Commission Report",
+    icon: <CollectionsIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/agent-commission"
+  },
+  {
+    label: "Pending Dues",
+    icon: <LocalOfferIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/pending-dues"
+  },
+  {
+    label: "Performance",
+    icon: <CollectionsIcon sx={{ fontSize: 36, color: "white" }} />,
+    roles: ["Agent"],
+    route: "/agent-performance"
+  },
+
 ];
 
 const Home = () => {
@@ -128,12 +173,16 @@ const Home = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+    <Box sx={{
+      minHeight: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", paddingTop: "env(safe-area-inset-top)",
+      paddingBottom: "env(safe-area-inset-bottom)",
+      paddingLeft: "env(safe-area-inset-left)",
+      paddingRight: "env(safe-area-inset-right)",
+    }}>
       {/* Dynamic Background Layers */}
       <Box sx={{ position: "absolute", width: "100%", height: "40%", background: "linear-gradient(135deg, #1a001f, #43005b)", top: 0, zIndex: 0 }} />
       <Box sx={{ position: "absolute", width: "100%", height: "30%", background: "linear-gradient(135deg, #2c003e, #4b0066)", top: "40%", zIndex: 0 }} />
       <Box sx={{ position: "absolute", width: "100%", height: "30%", background: "linear-gradient(135deg, #3b004f, #6a0080)", top: "70%", zIndex: 0 }} />
-
       {/* Floating Sparkles */}
       {[...Array(30)].map((_, i) => (
         <motion.div

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">jewel-scheme-frontend</string>
+    <string name="app_name">Renic Scheme</string>
     <string name="title_activity_main">jewel-scheme-frontend</string>
     <string name="package_name">com.jewelscheme.app</string>
     <string name="custom_url_scheme">com.jewelscheme.app</string>

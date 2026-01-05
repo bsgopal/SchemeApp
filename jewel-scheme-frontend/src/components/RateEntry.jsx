@@ -47,6 +47,10 @@ const handleSubmit = async (e) => {
         minHeight: "100vh",
         bgcolor: "#f8f4e9",
         p: 3,
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
       }}
     >
       <Paper

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Snackbar, Alert } from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ICONS
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -9,71 +9,71 @@ import HistoryIcon from "@mui/icons-material/History";
 import CurrencyBitcoinIcon from "@mui/icons-material/CurrencyBitcoin";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 
-// SUB PAGES
+// SUB COMPONENTS
 import WalletHistory from "./WalletHistory";
 import GoldChart from "./GoldChart";
 import PlanTab from "./PlanTab";
 import PassbookCard from "./PassbookCard";
 
 export default function Wallet() {
-  const userId = localStorage.getItem("userId");
+  const userId = sessionStorage.getItem("userId");
   const API = process.env.REACT_APP_API_URL;
 
-  // Main Wallet states
+  // ================= STATE =================
   const [walletBalance, setWalletBalance] = useState(0);
   const [goldBalance, setGoldBalance] = useState(0);
   const [goldRate, setGoldRate] = useState(0);
 
-  // UI states
   const [activeTab, setActiveTab] = useState("summary");
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [amount, setAmount] = useState("");
 
-  // Passbook states
   const [planData, setPlanData] = useState([]);
   const [expandedPlan, setExpandedPlan] = useState(null);
 
-  // Snackbar
-  const [snack, setSnack] = useState({ open: false, msg: "", type: "success" });
+  const [snack, setSnack] = useState({
+    open: false,
+    msg: "",
+    type: "success",
+  });
+
+  // ================= EFFECTS =================
+  useEffect(() => {
+    setTimeout(() => {
+      fetchWallet();
+    }, 500);
+
+    fetchGoldRate();
+    fetchPlanHistory();
+  }, []);
 
   useEffect(() => {
-    async function init() {
-      await fetchWallet();
-      await fetchGoldRate();
-      await fetchPlanHistory();
-    }
-    init();
-  }, []); // No dependency warnings
+    document.body.style.overflow =
+      showAddMoney || showConvert ? "hidden" : "auto";
+  }, [showAddMoney, showConvert]);
 
-  // ===================================
-  // Fetch Gold Rate
-  // ===================================
+  // ================= API =================
   async function fetchGoldRate() {
     try {
       const res = await axios.get(`${API}/api/rates`);
       setGoldRate(res.data.goldRate || 0);
-    } catch {
-      console.log("Gold rate fetch error");
-    }
+    } catch { }
   }
 
-  // ===================================
-  // Fetch Wallet Balances
-  // ===================================
   async function fetchWallet() {
     try {
-      const res = await axios.get(`${API}/api/wallet/${userId}`);
+      const res = await axios.get(`${API}/api/wallet/${userId}`, {
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
       setWalletBalance(res.data.balance || 0);
       setGoldBalance(res.data.gold || 0);
-    } catch {
-      console.log("Wallet fetch error");
-    }
+    } catch { }
   }
 
-  // ===================================
-  // Fetch Plan-wise Payment History
-  // ===================================
   async function fetchPlanHistory() {
     try {
       const res = await axios.get(`${API}/api/payments/user/self`, {
@@ -81,28 +81,18 @@ export default function Wallet() {
       });
 
       if (res.data.success) {
-        const grouped = res.data.plans.map((plan) => ({
-          plan_name: plan.plan_name,
-          membership_id: plan.membership_id,
-          installments: plan.installments,
-          payments: [...plan.payments].sort(
-            (a, b) => new Date(b.receipt_date) - new Date(a.receipt_date)
-          ),
-        }));
-
-        setPlanData(grouped);
+        setPlanData(res.data.plans || []);
       }
-    } catch (err) {
-      console.log(err);
-    }
+    } catch { }
   }
 
-  // ===================================
-  // Add Money (Dummy)
-  // ===================================
   async function handleAddMoney() {
     if (!amount || Number(amount) <= 0) {
-      return setSnack({ open: true, msg: "Enter valid amount", type: "error" });
+      return setSnack({
+        open: true,
+        msg: "Enter valid amount",
+        type: "error",
+      });
     }
 
     await axios.post(`${API}/api/wallet/add`, {
@@ -110,241 +100,136 @@ export default function Wallet() {
       amount: Number(amount),
     });
 
-    setSnack({ open: true, msg: "Money Added!", type: "success" });
+    // ✅ INSTANT UI UPDATE (fixes mobile issue)
+    setWalletBalance((prev) => prev + Number(amount));
+
+    setSnack({ open: true, msg: "Money Added", type: "success" });
     setShowAddMoney(false);
     setAmount("");
-    fetchWallet();
+
+    // Sync with backend later
+    setTimeout(fetchWallet, 1000);
   }
 
-  // ===================================
-  // Convert Cash → Gold
-  // ===================================
+
   async function handleConvert() {
     if (!amount || Number(amount) <= 0) {
-      return setSnack({ open: true, msg: "Enter amount", type: "error" });
-    }
-
-    try {
-      await axios.post(`${API}/api/wallet/convert`, {
-        userId,
-        amount: Number(amount),
-      });
-
-      setSnack({ open: true, msg: "Converted to Gold!", type: "success" });
-      setShowConvert(false);
-      setAmount("");
-      fetchWallet();
-    } catch (err) {
-      setSnack({
+      return setSnack({
         open: true,
-        msg: err?.response?.data?.message || "Error",
+        msg: "Enter amount",
         type: "error",
       });
     }
+
+    await axios.post(`${API}/api/wallet/convert`, {
+      userId,
+      amount: Number(amount),
+    });
+
+    // Optimistic update
+    setWalletBalance((prev) => prev - Number(amount));
+    setGoldBalance((prev) => prev + Number(amount) / goldRate);
+
+    setSnack({ open: true, msg: "Converted to Gold", type: "success" });
+    setShowConvert(false);
+    setAmount("");
+
+    setTimeout(fetchWallet, 1000);
   }
 
-  // ===================================
-  // Glass Style
-  // ===================================
-  const glass = {
-    background: "rgba(255, 255, 255, 0.08)",
-    backdropFilter: "blur(20px)",
-    borderRadius: "16px",
-    border: "1px solid rgba(255,255,255,0.15)",
-    padding: "20px",
-    marginTop: "20px",
-    boxShadow: "0 4px 40px rgba(255,215,0,0.2)",
-  };
 
-  // ===================================
-  // RENDER
-  // ===================================
+  // ================= UI =================
   return (
-    <div
-      style={{
-        padding: "20px",
-        minHeight: "100vh",
-        background: "linear-gradient(135deg,#1A0033,#43005B,#6A0080)",
-        color: "white",
-      }}
-    >
-
+    <div style={pageStyle}>
       {/* HEADER */}
-      {/** place header here */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginBottom: "15px",
-          padding: "12px 15px",
-          borderRadius: "14px",
-          background: "rgba(255,255,255,0.08)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.2)",
-          boxShadow: "0 4px 20px rgba(255,215,0,0.15)",
-        }}
-      >
-        <div
-          onClick={() => window.history.back()}
-          style={{
-            fontSize: "22px",
-            cursor: "pointer",
-            marginRight: "15px",
-            color: "#FFD700",
-            fontWeight: "bold",
-          }}
-        >
+      <div style={header}>
+        <span style={backBtn} onClick={() => window.history.back()}>
           ←
-        </div>
-
-        <h2
-          style={{
-            flexGrow: 1,
-            margin: 0,
-            textAlign: "center",
-            color: "#FFD700",
-            fontWeight: "700",
-            letterSpacing: "1px",
-          }}
-        >
-          My Wallet
-        </h2>
-
-        <div style={{ width: "22px" }}></div>
+        </span>
+        <h2 style={title}>My Wallet</h2>
       </div>
 
-      {/* SUMMARY TAB */}
+      {/* SUMMARY */}
       {activeTab === "summary" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {/* WALLET CARD */}
           <div style={glass}>
-            <h2 style={{ color: "#FFD700" }}>Wallet Balance</h2>
+            <h3 style={{ color: "#FFD700" }}>Wallet Balance</h3>
             <h1 style={{ color: "#00ff88" }}>₹ {walletBalance}</h1>
-            <p style={{ color: "#FFD700", fontSize: "18px" }}>
-              Gold Balance: {goldBalance} g
-            </p>
+            <p>Gold Balance: {goldBalance} g</p>
 
-            <button
-              onClick={() => setShowAddMoney(true)}
-              style={{
-                width: "100%",
-                marginTop: "15px",
-                padding: "12px",
-                background: "#FFD700",
-                color: "#4B0082",
-                fontSize: "18px",
-                fontWeight: "bold",
-                borderRadius: "10px",
-                border: "none",
-              }}
-            >
+            <button style={goldBtn} onClick={() => setShowAddMoney(true)}>
               Add Money
             </button>
-
-            <button
-              onClick={() => setShowConvert(true)}
-              style={{
-                width: "100%",
-                marginTop: "10px",
-                padding: "12px",
-                background: "#4B0082",
-                color: "#FFD700",
-                fontSize: "18px",
-                fontWeight: "bold",
-                borderRadius: "10px",
-                border: "none",
-              }}
-            >
+            <button style={purpleBtn} onClick={() => setShowConvert(true)}>
               Convert Cash → Gold
             </button>
           </div>
 
-          {/* PASSBOOK (Plan-Wise) */}
-          <h3 style={{ marginTop: "25px", color: "#FFD700" }}>Passbook</h3>
+          <h3 style={{ marginTop: 25, color: "#FFD700" }}>Passbook</h3>
 
           {planData.map((plan, idx) => (
-            <div
-              key={idx}
-              style={{
-                ...glass,
-                padding: "15px",
-                marginTop: "12px",
-              }}
-            >
+            <div key={idx} style={glass}>
               <div
+                style={planHeader}
                 onClick={() =>
                   setExpandedPlan(expandedPlan === idx ? null : idx)
                 }
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  color: "#FFD86B",
-                }}
               >
                 {plan.plan_name}
                 <span>{expandedPlan === idx ? "▲" : "▼"}</span>
               </div>
 
-              {expandedPlan === idx && (
-                <div style={{ marginTop: "12px" }}>
-                  {plan.payments.map((txn, i) => (
-                    <PassbookCard key={i} txn={{ ...txn, plan_name: plan.plan_name }} />
-                  ))}
-                </div>
-              )}
+              {expandedPlan === idx &&
+                plan.payments.map((txn, i) => (
+                  <PassbookCard key={i} txn={txn} />
+                ))}
             </div>
           ))}
         </motion.div>
       )}
 
-      {/* HISTORY */}
       {activeTab === "history" && <WalletHistory />}
-
-      {/* GOLD CHART */}
+      {activeTab === "plans" && <PlanTab userId={userId} />}
       {activeTab === "chart" && <GoldChart />}
 
-      {/* PLANS TAB */}
-      {activeTab === "plans" && <PlanTab userId={userId} />}
+      {/* ADD MONEY MODAL */}
+      <Modal open={showAddMoney} onClose={() => setShowAddMoney(false)}>
+        <h2 style={modalTitle}>Add Money</h2>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          style={input}
+        />
+        <button style={goldBtn} onClick={handleAddMoney}>
+          Confirm
+        </button>
+        <button style={cancelBtn} onClick={() => setShowAddMoney(false)}>
+          Cancel
+        </button>
+      </Modal>
 
-      {/* POPUPS */}
-      {showAddMoney && (
-        <div className="popup">
-          <div className="popup-card">
-            <h3>Add Money</h3>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
-            />
-            <button onClick={handleAddMoney}>Confirm</button>
-            <button className="cancel" onClick={() => setShowAddMoney(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showConvert && (
-        <div className="popup">
-          <div className="popup-card">
-            <h3>Cash → Gold</h3>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
-            />
-            <p>Gold: {(amount / goldRate).toFixed(4)} g</p>
-            <button onClick={handleConvert}>Convert</button>
-            <button className="cancel" onClick={() => setShowConvert(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* CONVERT MODAL */}
+      <Modal open={showConvert} onClose={() => setShowConvert(false)}>
+        <h2 style={modalTitle}>Cash → Gold</h2>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          style={input}
+        />
+        <p style={{ textAlign: "center", marginTop: 10 }}>
+          Gold: {goldRate ? (amount / goldRate).toFixed(4) : "0.0000"} g
+        </p>
+        <button style={goldBtn} onClick={handleConvert}>
+          Convert
+        </button>
+        <button style={cancelBtn} onClick={() => setShowConvert(false)}>
+          Cancel
+        </button>
+      </Modal>
 
       {/* SNACKBAR */}
       <Snackbar
@@ -355,13 +240,30 @@ export default function Wallet() {
         <Alert severity={snack.type}>{snack.msg}</Alert>
       </Snackbar>
 
-      {/* BOTTOM TABS */}
       <BottomTabs activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }
 
-/* ---------------- BOTTOM TAB COMPONENT ---------------- */
+/* ================= MODAL ================= */
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <motion.div
+        style={modal}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+/* ================= BOTTOM TABS ================= */
 function BottomTabs({ activeTab, setActiveTab }) {
   const tabs = [
     { id: "summary", icon: <AccountBalanceWalletIcon />, text: "Wallet" },
@@ -371,21 +273,7 @@ function BottomTabs({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: "70px",
-        background: "rgba(255,255,255,0.1)",
-        backdropFilter: "blur(15px)",
-        borderTop: "1px solid rgba(255,255,255,0.2)",
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-      }}
-    >
+    <div style={bottomTabs}>
       {tabs.map((t) => (
         <div
           key={t.id}
@@ -393,13 +281,128 @@ function BottomTabs({ activeTab, setActiveTab }) {
           style={{
             textAlign: "center",
             color: activeTab === t.id ? "#FFD700" : "#ccc",
-            cursor: "pointer",
           }}
         >
           {t.icon}
-          <p style={{ fontSize: "12px" }}>{t.text}</p>
+          <p style={{ fontSize: 12 }}>{t.text}</p>
         </div>
       ))}
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+const pageStyle = {
+  padding: "20px",
+  minHeight: "100vh",
+  background: "linear-gradient(135deg,#1A0033,#43005B,#6A0080)",
+  color: "white",
+  paddingBottom: "90px",
+};
+
+const header = {
+  display: "flex",
+  alignItems: "center",
+  marginBottom: 15,
+};
+
+const backBtn = {
+  fontSize: 22,
+  cursor: "pointer",
+  marginRight: 10,
+  color: "#FFD700",
+};
+
+const title = {
+  flex: 1,
+  textAlign: "center",
+  color: "#FFD700",
+};
+
+const glass = {
+  background: "rgba(255,255,255,0.08)",
+  backdropFilter: "blur(18px)",
+  borderRadius: 16,
+  padding: 20,
+  marginTop: 15,
+};
+
+const planHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  cursor: "pointer",
+  fontSize: 18,
+  color: "#FFD86B",
+};
+
+const overlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.6)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 2000,
+};
+
+const modal = {
+  width: "100%",
+  maxWidth: 380,
+  background: "rgba(255,255,255,0.12)",
+  backdropFilter: "blur(18px)",
+  borderRadius: 20,
+  padding: 24,
+};
+
+const modalTitle = {
+  textAlign: "center",
+  color: "#FFD700",
+};
+
+const input = {
+  width: "100%",
+  padding: 12,
+  borderRadius: 12,
+  border: "none",
+  marginTop: 15,
+};
+
+const goldBtn = {
+  width: "100%",
+  marginTop: 15,
+  padding: 12,
+  background: "#FFD700",
+  color: "#4B0082",
+  fontWeight: "bold",
+  borderRadius: 12,
+  border: "none",
+};
+
+const purpleBtn = {
+  ...goldBtn,
+  background: "#4B0082",
+  color: "#FFD700",
+};
+
+const cancelBtn = {
+  width: "100%",
+  marginTop: 10,
+  padding: 10,
+  background: "transparent",
+  color: "#fff",
+  border: "1px solid rgba(255,255,255,0.3)",
+  borderRadius: 12,
+};
+
+const bottomTabs = {
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: 70,
+  background: "rgba(255,255,255,0.1)",
+  backdropFilter: "blur(15px)",
+  display: "flex",
+  justifyContent: "space-around",
+  alignItems: "center",
+};

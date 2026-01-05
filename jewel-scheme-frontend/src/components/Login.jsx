@@ -14,7 +14,7 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import CloseIcon from "@mui/icons-material/Close";
-import logo from "./logo.png";
+import logo from "./logo_renic.png";
 import bgImg from "./images/image2.png"; // Premium background image
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -89,7 +89,7 @@ function Login() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleCreateAccount = () => navigate("/CreateAccount");
-  
+
   const handleSkipLogin = () => {
     // You can set guest user data in sessionStorage if needed
     sessionStorage.setItem("isGuest", "true");
@@ -136,6 +136,11 @@ function Login() {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
+
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
       }}
     >
       {/* ✨ Gold shimmer background */}
@@ -147,11 +152,10 @@ function Login() {
         alt="Logo"
         style={{
           position: "absolute",
-          top: -150,
-          right: -80,
-          height: 380,
+          top: "calc(env(safe-area-inset-top) + 10px)",
+          right: 10,
+          height: 120,
           zIndex: 3,
-          cursor: "pointer"
         }}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -165,7 +169,7 @@ function Login() {
         onClick={handleSkipLogin}
         sx={{
           position: "absolute",
-          top: 20,
+          top: "calc(env(safe-area-inset-top) + 10px)", 
           left: 20,
           zIndex: 3,
           color: "white",
@@ -293,13 +297,13 @@ function Login() {
       </motion.div>
 
       {/* Version */}
-      <Typography 
-        variant="caption" 
-        sx={{ 
-          color: "white", 
+      <Typography
+        variant="caption"
+        sx={{
+          color: "white",
           position: "absolute",
           bottom: 20,
-          zIndex: 2 
+          zIndex: 2
         }}
       >
         V-1.0.0

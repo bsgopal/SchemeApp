@@ -114,6 +114,10 @@ const NewPlan = ({ onBack }) => {
         background: "linear-gradient(135deg, #3a004d, #1a1a1a)",
         color: "#fff",
         overflowX: "hidden",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
       }}
     >
       {/* Inject shimmer keyframes */}

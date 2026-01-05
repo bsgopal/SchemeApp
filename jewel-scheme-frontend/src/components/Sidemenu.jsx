@@ -83,13 +83,18 @@ function Sidemenu({ open, onClose }) {
       PaperProps={{
         sx: {
           width: 280,
-          border: "none",
-          position: "relative",
-          overflow: "hidden",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          height: "100dvh",          // ✅ REQUIRED
+          maxHeight: "100dvh",       // ✅ REQUIRED
+          display: "flex",           // ✅ REQUIRED
+          flexDirection: "column",   // ✅ REQUIRED
+          overflow: "hidden",        // ✅ REQUIRED
+
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
         },
       }}
     >
+
       {/* Gradient Background Layers */}
       <Box
         sx={{
@@ -169,55 +174,67 @@ function Sidemenu({ open, onClose }) {
         </Box>
 
         {/* Menu Items */}
-        <List
+        <Box
           sx={{
             flexGrow: 1,
-            pt: 0,
-            "& .MuiListItem-root": {
-              py: 1.2,
-              px: 2,
-              borderBottom: "1px solid rgba(255,255,255,0.1)",
-              transition: "all 0.3s ease",
-            },
-            "& .MuiListItem-root:hover": {
-              background:
-                "linear-gradient(135deg, rgba(212,160,23,0.2), rgba(255,220,150,0.25))",
-              transform: "scale(1.02)",
-              boxShadow: "0 3px 8px rgba(0,0,0,0.2)",
-              borderRadius: "8px",
-            },
-            "& .MuiListItemIcon-root": {
-              minWidth: 36,
-              color: "#f5d76e", // golden icons
-            },
-            "& .MuiListItemText-root": {
-              color: "#fff",
-            },
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+
+            /* ✅ SAFE AREA */
+            paddingBottom: "env(safe-area-inset-bottom)",
+
+            /* smooth mobile scrolling */
+            WebkitOverflowScrolling: "touch",
           }}
         >
-          {menuItems.map((item, index) => (
-            <motion.div
-              key={item.text}
-              initial={{ x: -30, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.08, duration: 0.4 }}
-            >
-              <ListItem disablePadding>
-                <ListItemButton onClick={() => handleItemClick(item.action)}>
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    primaryTypographyProps={{
-                      fontSize: "0.95rem",
-                      fontWeight: 600,
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-
-            </motion.div>
-          ))}
-        </List>
+          <List
+            sx={{
+              pt: 0,
+              "& .MuiListItem-root": {
+                py: 1.2,
+                px: 2,
+                borderBottom: "1px solid rgba(255,255,255,0.1)",
+                transition: "all 0.3s ease",
+              },
+              "& .MuiListItem-root:hover": {
+                background:
+                  "linear-gradient(135deg, rgba(212,160,23,0.2), rgba(255,220,150,0.25))",
+                transform: "scale(1.02)",
+                boxShadow: "0 3px 8px rgba(0,0,0,0.2)",
+                borderRadius: "8px",
+              },
+              "& .MuiListItemIcon-root": {
+                minWidth: 36,
+                color: "#f5d76e",
+              },
+              "& .MuiListItemText-root": {
+                color: "#fff",
+              },
+            }}
+          >
+            {menuItems.map((item, index) => (
+              <motion.div
+                key={item.text}
+                initial={{ x: -30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: index * 0.08, duration: 0.4 }}
+              >
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => handleItemClick(item.action)}>
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{
+                        fontSize: "0.95rem",
+                        fontWeight: 600,
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              </motion.div>
+            ))}
+          </List>
+        </Box>
 
         {/* Sign in / Logout */}
         <motion.div

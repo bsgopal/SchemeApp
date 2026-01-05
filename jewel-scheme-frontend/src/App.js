@@ -21,6 +21,7 @@ import VerifyForgotOtp from "./components/forgot-password/VerifyForgotOtp";
 import ResetPassword from "./components/forgot-password/ResetPassword";
 import Wallet from "./components/Features/Wallet";
 import Profile from "./components/Features/Profile";
+import AgentDashboard from "./components/Agent/AgentDashboard";
 
 
 // Mock banner images for demonstration
@@ -84,8 +85,8 @@ function App() {
       <Route path="/forgotPassword" element={<ForgotPassword />} />
       <Route path="/verifyForgotOtp" element={<VerifyForgotOtp />} />
       <Route path="/resetPassword" element={<ResetPassword />} />
-      <Route path="/wallet" element = {<Wallet />} />
-      <Route path="/profile" element = {<Profile />} />
+      <Route path="/wallet" element={<Wallet />} />
+      <Route path="/profile" element={<Profile />} />
 
 
       {/* Create Plan */}
@@ -110,6 +111,16 @@ function App() {
       {/* 🟢 New Arrivals */}
       <Route path="/newarrivals" element={<NewArrivals />} /> {/* customer view */}
       <Route path="/manage-newarrivals" element={<ManageNewArrivals />} /> {/* admin upload */}
+
+
+      <Route path="/agent-dashboard" element={<AgentDashboard />} />
+      {/* <Route path="/agent-customers" element={< />} />
+      <Route path="/collect-installment" element={<CollectInstallment />} />
+      <Route path="/agent-wallet" element={<AgentWallet />} />
+      <Route path="/agent-commission" element={<AgentCommission />} />
+      <Route path="/pending-dues" element={<PendingDues />} />
+      <Route path="/agent-performance" element={<AgentPerformance />} /> */}
+
     </Routes>
   );
 }

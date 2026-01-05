@@ -21,11 +21,6 @@ const dbConfig = {
 };
 
 
-// console.log('Database Config:', { 
-//   ...dbConfig, 
-//   password: dbConfig.password ? '***' : 'not set' 
-// });
-
 const pool = mysql.createPool(dbConfig);
 
 
