@@ -1,85 +1,63 @@
-// // routes/rates.js
-// import express from "express";
-import db from "../config/db.js";// your MySQL connection
-
-// const router = express.Router();
-
-// // Save or update today's rate
-// router.post("/set", async (req, res) => {
-//   const { goldRate, silverRate } = req.body;
-
-//   try {
-//     // upsert logic (only 1 row for latest rates)
-//     await db.query(
-//       "REPLACE INTO rates (id, goldRate, silverRate, updatedAt) VALUES (1, ?, ?, NOW())",
-//       [goldRate, silverRate]
-//     );
-
-//     res.json({ success: true, message: "Rates updated successfully" });
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// });
-
-// // Get latest rate
-// router.get("/", async (req, res) => {
-//   try {
-//     const [rows] = await db.query("SELECT * FROM rates WHERE id = 1");
-//     res.json(rows[0] || {});
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// });
-
-// export default router;
-
-
-// routes/rates.js
 import express from "express";
 import axios from "axios";
+import db from "../config/db.js";
 
 const router = express.Router();
 
-// ⚠️ HARD-CODED API KEY (TEMPORARY)
-const GOLD_API_KEY = "goldapi-1cvh35smk1hipf1-io";
+// 1 Troy Ounce = 31.1035 grams
+const OUNCE_TO_GRAM = 31.1035;
 
+// GET latest gold & silver rate
 router.get("/", async (req, res) => {
   try {
-    const headers = {
-      "x-access-token": GOLD_API_KEY,
-      "Content-Type": "application/json"
-    };
+    // 🔹 Free public API (NO KEY)
+    const apiUrl = "https://data-asg.goldprice.org/dbXRates/INR";
 
-    const [goldRes, silverRes] = await Promise.all([
-      axios.get("https://www.goldapi.io/api/XAU/INR", { headers }),
-      axios.get("https://www.goldapi.io/api/XAG/INR", { headers })
-    ]);
+    const response = await axios.get(apiUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0" // required sometimes
+      }
+    });
 
-    const goldRate = goldRes.data.price_gram_22k;
-    const silverRate = silverRes.data.price_gram_22k;
+    const item = response.data?.items?.[0];
+    if (!item) {
+      throw new Error("Invalid API response");
+    }
 
-    // Save latest rate to DB
+    // API gives PRICE PER OUNCE
+    const goldPerOunce = item.xauPrice;
+    const silverPerOunce = item.xagPrice;
+
+    // ✅ Convert to PER GRAM
+    const goldPerGram24K = goldPerOunce / OUNCE_TO_GRAM;
+    const goldPerGram22K = +(goldPerGram24K * (22 / 24)).toFixed(2);
+    const silverPerGram = +(silverPerOunce / OUNCE_TO_GRAM).toFixed(2);
+
+    // ✅ Save to DB (UPSERT)
     await db.query(
-      "REPLACE INTO rates (id, goldRate, silverRate, updatedAt) VALUES (1, ?, ?, NOW())",
-      [goldRate, silverRate]
+      `REPLACE INTO rates (id, goldRate, silverRate, updatedAt)
+       VALUES (1, ?, ?, NOW())`,
+      [goldPerGram22K, silverPerGram]
     );
 
+    // ✅ Response to frontend
     res.json({
       source: "live_api",
-      goldRate,
-      silverRate,
-      fetchedAt: new Date()
+      goldRate: goldPerGram22K,     // ₹ / gram (22K)
+      silverRate: silverPerGram,    // ₹ / gram
+      fetchedAt: new Date(),
     });
 
   } catch (err) {
-    console.error("GoldAPI ERROR:", err.response?.data || err.message);
+    console.error("Gold API Error:", err.message);
 
-    // fallback to DB
+    // 🔁 Fallback to DB
     const [rows] = await db.query("SELECT * FROM rates WHERE id = 1");
+
     res.json({
       source: "db_fallback",
       data: rows[0] || null,
-      error: err.response?.data || err.message
+      error: err.message,
     });
   }
 });

@@ -23,7 +23,9 @@ router.get("/:userId", async (req, res) => {
          sm.join_date,
          sg.plan_name AS plan_name,
          sg.no_of_inst AS duration,
-         sg.amount_per_inst AS amount_per_inst
+         sg.amount_per_inst AS amount_per_inst,
+         sg.is_closed,
+         sg.banner_path
        FROM scheme_memberships sm
        JOIN scheme_groups sg ON sm.group_id = sg.id
        WHERE sm.customer_user_id = ?

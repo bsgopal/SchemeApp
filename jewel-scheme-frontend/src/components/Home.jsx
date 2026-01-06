@@ -14,7 +14,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import axios from "axios";
-import logo from "./logo.png";
+import logo from "./renic_logo.png";
 import TouchAppIcon from "@mui/icons-material/TouchApp";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PaymentIcon from "@mui/icons-material/Payment";
@@ -33,10 +33,10 @@ import { motion } from "framer-motion";
 const bannerImages = ["/images/newBanner1.jpeg", "/images/newBanner2.jpeg", "/images/banner3.png"];
 
 const allFeatures = [
-  { label: "New Plan", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/newplan" },
-  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/my-plans" },
+  { label: "New Plan", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "User"], route: "/newplan" },
+  { label: "My Plans", icon: <AssignmentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "User"], route: "/my-plans" },
   // { label: "Pay EMA", icon: <PaymentIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "Agent", "User"], route: "/payema" },
-  { label: "My Wallet", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin",  "User"], route: "/wallet" },
+  { label: "My Wallet", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "User"], route: "/wallet" },
   { label: "Offers", icon: <LocalOfferIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin", "User"], route: "/offers" },
   { label: "Create User", icon: <AccountBalanceWalletIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin"], route: "/createaccount" },
   { label: "Create New Plans", icon: <TouchAppIcon sx={{ fontSize: 36, color: "white" }} />, roles: ["SuperAdmin", "Admin"], route: "/createnewplan" },
@@ -109,10 +109,10 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const savedMobile = sessionStorage.getItem("mobile");
-    const savedName = sessionStorage.getItem("name");
-    const savedTitle = sessionStorage.getItem("title");
-    const savedRole = sessionStorage.getItem("role");
+    const savedMobile = localStorage.getItem("mobile");
+    const savedName = localStorage.getItem("name");
+    const savedTitle = localStorage.getItem("title");
+    const savedRole = localStorage.getItem("role");
     if (savedMobile) setMobile(savedMobile);
     if (savedName) setName(savedName);
     if (savedTitle) setTitle(savedTitle);
@@ -248,16 +248,35 @@ const Home = () => {
           <Sidemenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
           {/* Center Logo */}
-          <Box sx={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+
+          {/* Center Logo (FIXED) */}
+          <Box
+            sx={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              alignItems: "center",
+              height: "100%",          // 🔥 important
+              pointerEvents: "none",   // avoids blocking clicks
+            }}
+          >
             <motion.img
               src={logo}
-              alt="Logo"
-              style={{ height: 200, width: "auto", objectFit: "contain" }}
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200 }}
+              alt="RENIC"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{
+                height: 36,            // ✅ PERFECT header size
+                width: "auto",
+                objectFit: "contain",
+              }}
             />
           </Box>
+
+
+
 
           {/* Profile Avatar Button */}
           <Box sx={{ mr: 1 }}>

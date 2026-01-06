@@ -91,7 +91,7 @@ export default function VerifyForgotOtp() {
   }, [timer]);
 
   const handleVerify = async () => {
-    const userId = sessionStorage.getItem("resetUserId");
+    const userId = localStorage.getItem("resetUserId");
     if (!userId) return setError("Session expired. Try again.");
 
     try {
@@ -107,7 +107,7 @@ export default function VerifyForgotOtp() {
   };
 
   const handleResend = async () => {
-    const userId = sessionStorage.getItem("resetUserId");
+    const userId = localStorage.getItem("resetUserId");
 
     try {
       const res = await axios.post(

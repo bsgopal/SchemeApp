@@ -14,6 +14,8 @@ import {
   InputAdornment,
   MenuItem,
   IconButton,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
@@ -22,48 +24,63 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 export default function PaymentHistoryList() {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [tab, setTab] = useState(0); // 0 = Active, 1 = Closed
 
-  const navigate = useNavigate();
-
+  // 🔹 Fetch all users
   const fetchUsers = () =>
     axios.get(`${API}/api/payments/users`, {
       headers: {
         "x-admin-role":
-          sessionStorage.getItem("is_super_admin") === "1"
+          localStorage.getItem("is_super_admin") === "1"
             ? "superadmin"
             : "admin",
       },
     });
 
-  const fetchStat = (userId) =>
+  // 🔹 Fetch user plans
+  const fetchUserPlans = (userId) =>
     axios.get(`${API}/api/payments/user/${userId}`, {
       headers: {
         "x-admin-role":
-          sessionStorage.getItem("is_super_admin") === "1"
+          localStorage.getItem("is_super_admin") === "1"
             ? "superadmin"
             : "admin",
       },
     });
+    
 
-  // Load users
+  // 🔹 Load users + compute stats
   useEffect(() => {
     fetchUsers().then(async (res) => {
       const temp = [];
 
       for (let u of res.data.users) {
-        const stats = await fetchStat(u.id);
-        const plans = stats.data.plans;
+        const stats = await fetchUserPlans(u.id);
+        const plans = stats.data.plans || [];
+        // console.log(plans)
+
+        // 🔹 Filter plans based on tab
+        const relevantPlans =
+          tab === 0
+            ? plans.filter((p) => Number(p.is_closed) === 0)
+            : plans.filter((p) => Number(p.is_closed) === 1);
+
+        if (relevantPlans.length === 0) continue;
 
         let pending = 0;
-        plans.forEach((p) => (pending += p.installments.pending));
+        relevantPlans.forEach(
+          (p) => (pending += p.installments.pending)
+        );
 
         temp.push({
           ...u,
-          total_plans: plans.length,
+          total_plans: relevantPlans.length,
           total_pending: pending,
         });
       }
@@ -71,20 +88,25 @@ export default function PaymentHistoryList() {
       setUsers(temp);
       setFiltered(temp);
     });
-  }, []);
+  }, [tab]);
 
-  // Filtering
+  // 🔹 Apply search + filter
   useEffect(() => {
     let list = [...users];
 
-    if (search !== "") {
+    if (search) {
       list = list.filter((u) =>
         u.name.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    if (filter === "pending") list = list.filter((u) => u.total_pending > 0);
-    if (filter === "completed") list = list.filter((u) => u.total_pending === 0);
+    if (filter === "pending") {
+      list = list.filter((u) => u.total_pending > 0);
+    }
+
+    if (filter === "completed") {
+      list = list.filter((u) => u.total_pending === 0);
+    }
 
     setFiltered(list);
   }, [search, filter, users]);
@@ -93,14 +115,15 @@ export default function PaymentHistoryList() {
     <Box
       sx={{
         height: "100vh",
-        background: "linear-gradient(135deg, #26004d, #6a0080, #b30059)",
+        background: "linear-gradient(135deg,#26004d,#6a0080,#b30059)",
         color: "white",
         p: 3,
+        pb: 8,
       }}
     >
       {/* HEADER */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-        <IconButton onClick={() => window.history.back()} sx={{ color: "gold" }}>
+        <IconButton onClick={() => navigate(-1)} sx={{ color: "gold" }}>
           <ArrowBackIosNewIcon />
         </IconButton>
 
@@ -115,7 +138,7 @@ export default function PaymentHistoryList() {
           background: "rgba(255,255,255,0.12)",
           borderRadius: "20px",
           backdropFilter: "blur(8px)",
-          height: "85vh",
+          height: "80vh",
           overflowY: "auto",
         }}
       >
@@ -179,7 +202,11 @@ export default function PaymentHistoryList() {
           {filtered.map((u, index) => (
             <ListItem key={u.id} disablePadding>
               <ListItemButton
-                onClick={() => navigate(`/payment-history/${u.id}`)}
+                onClick={() =>
+                  navigate(`/payment-history/${u.id}`, {
+                    state: { tab }, // 🔹 pass active/closed context
+                  })
+                }
                 sx={{
                   borderRadius: "12px",
                   mb: 1,
@@ -202,6 +229,26 @@ export default function PaymentHistoryList() {
           ))}
         </List>
       </Card>
+
+      {/* BOTTOM TABS */}
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="fullWidth"
+        sx={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          background: "#1a0033",
+          borderTop: "1px solid gold",
+        }}
+        indicatorColor="warning"
+        textColor="inherit"
+      >
+        <Tab label="Active Plans" />
+        <Tab label="Closed Plans" />
+      </Tabs>
     </Box>
   );
 }

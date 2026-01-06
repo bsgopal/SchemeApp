@@ -39,7 +39,8 @@ export const getUserPaymentHistory = async (req, res) => {
           sm.member_no,
           sm.status,
           sm.join_date,
-          sg.plan_name
+          sg.plan_name,
+          sg.is_closed
        FROM scheme_memberships sm
        INNER JOIN scheme_groups sg ON sg.id = sm.group_id
        WHERE sm.customer_user_id = ?
@@ -92,6 +93,7 @@ export const getUserPaymentHistory = async (req, res) => {
         member_no: m.member_no,
         status: m.status,
         join_date: m.join_date,
+        is_closed:m.is_closed,
         installments: {
           total_inst: Number(inst[0].total_inst),
           paid: Number(inst[0].paid),

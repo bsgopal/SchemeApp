@@ -47,9 +47,9 @@ const JoinNewPlan = () => {
 
   // Fetch user session data
   useEffect(() => {
-    const name = sessionStorage.getItem("name");
-    const mobile = sessionStorage.getItem("mobile");
-    const email = sessionStorage.getItem("email");
+    const name = localStorage.getItem("name");
+    const mobile = localStorage.getItem("mobile");
+    const email = localStorage.getItem("email");
 
     setUserData({ name, mobile, email });
     setFormData((p) => ({ ...p, fullName: name }));
@@ -89,7 +89,7 @@ const JoinNewPlan = () => {
     setIsLoading(true);
 
     try {
-      const userId = sessionStorage.getItem("userId");
+      const userId = localStorage.getItem("userId");
 
       // Step 1: Create payment
       const payRes = await axios.post(

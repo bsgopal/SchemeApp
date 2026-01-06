@@ -104,7 +104,7 @@ export default function ForgotPassword() {
       );
 
       if (res.data.success) {
-        sessionStorage.setItem("resetUserId", res.data.userId);
+        localStorage.setItem("resetUserId", res.data.userId);
 
         setSuccess("OTP has been sent to your registered email.");
 

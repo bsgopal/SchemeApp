@@ -94,10 +94,10 @@ export default function AgentDashboard() {
 
         const [statsRes, pendingRes] = await Promise.all([
           axios.get(`${API}/api/agent/dashboard`, {
-            headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
           axios.get(`${API}/api/agent/pending-installments?date=today`, {
-            headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ]);
 

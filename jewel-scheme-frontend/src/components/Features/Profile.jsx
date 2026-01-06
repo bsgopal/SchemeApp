@@ -17,7 +17,7 @@ import axios from "axios";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const userId = sessionStorage.getItem("userId");
+  const userId = localStorage.getItem("userId");
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -185,7 +185,7 @@ const Profile = () => {
           fontWeight: "bold",
         }}
         onClick={() => {
-          sessionStorage.clear();
+          localStorage.clear();
           navigate("/login");
         }}
       >

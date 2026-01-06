@@ -89,7 +89,7 @@ function CreateAccount() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  const isSuperAdmin = sessionStorage.getItem("is_super_admin") === "1";
+  const isSuperAdmin = localStorage.getItem("is_super_admin") === "1";
 
   const [formData, setFormData] = React.useState({
     firstname: "",
@@ -163,7 +163,7 @@ function CreateAccount() {
 
       if (res.data.success) {
         const userId = res.data.userId;
-        sessionStorage.setItem("tempUserId", userId);
+        localStorage.setItem("tempUserId", userId);
 
         setSnackbar({
           open: true,
@@ -211,7 +211,7 @@ function CreateAccount() {
   };
 
   const handleBack = () => {
-    const isLoggedIn = sessionStorage.getItem("role");
+    const isLoggedIn = localStorage.getItem("role");
     if (isLoggedIn) navigate("/Home");
     else navigate("/");
   };

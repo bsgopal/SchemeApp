@@ -79,7 +79,7 @@ function App() {
       <Route path="/otp" element={<OTP />} />
       <Route path="/my-plans" element={<MyPlans />} />
       <Route path="/plan-details/:id" element={<PlanDetails />} />
-      <Route path='/paymenthistory' element={<PaymentHistory />} />
+      <Route path='/payment-history' element={<PaymentHistory />} />
       <Route path='/payment-history/:userId' element={<PaymentHistoryDetails />} />
 
       <Route path="/forgotPassword" element={<ForgotPassword />} />

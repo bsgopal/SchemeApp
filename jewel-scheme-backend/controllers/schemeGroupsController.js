@@ -24,7 +24,7 @@ export const getAllGroups = async (req, res) => {
     const { branch_id, group_code, page = 1, limit = 20 } = req.query;
 
     // Build query dynamically
-    let query = "SELECT * FROM scheme_groups WHERE 1=1";
+    let query = "SELECT * FROM scheme_groups WHERE 1=1 AND is_closed=0";
     const params = [];
 
     if (branch_id) {
@@ -74,7 +74,6 @@ const safe = (val) => {
 };
 
 export const createGroup = async (req, res) => {
-  console.log("Uploaded file:", req.file);
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -83,15 +82,15 @@ export const createGroup = async (req, res) => {
       group_code,
       plan_name,
       plan_type,
-      description,   // ✅ new
+      description,
       amount_per_inst,
       gold_weight,
       jewellery_type,
       duration,
       no_of_members,
-      start_no,      // ✅ new
+      start_no,
       is_flexible,
-      is_gold_scheme, // ✅ new
+      is_gold_scheme,
       bonus,
       total_balance,
       note,
@@ -100,53 +99,81 @@ export const createGroup = async (req, res) => {
       status,
       priority,
       branch_id,
-      sync_status    // ✅ new
+      sync_status,
+      banner_url // ✅ optional
     } = req.body;
-    const banner_path = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // ✅ banner path (upload OR url)
+    const uploadedBanner = req.file
+      ? `/uploads/newplans/${req.file.filename}`
+      : null;
+
+    const banner_path = uploadedBanner ?? banner_url ?? null;
+
     console.log("Banner path to store:", banner_path);
 
-
-    // Insert into scheme_groups
     const [result] = await conn.execute(
       `INSERT INTO scheme_groups 
-            (group_code, plan_name, plan_type, description, amount_per_inst, 
-            total_gold_balance, jewellery_type, no_of_inst, no_of_members, 
-            start_no, is_flexible, is_gold_scheme, bonus, total_balance_amt, 
-            note, banner_path , status, priority, branch_id, is_closed, sync_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (group_code, plan_name, plan_type, description, amount_per_inst, 
+        total_gold_balance, jewellery_type, no_of_inst, no_of_members, 
+        start_no, is_flexible, is_gold_scheme, bonus, total_balance_amt, 
+        note, banner_path, status, priority, branch_id, is_closed, sync_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        group_code, plan_name, plan_type, description || null, amount_per_inst,
-        gold_weight, jewellery_type, duration, no_of_members,
-        start_no || null, is_flexible ? 1 : 0, is_gold_scheme ? 1 : 0, bonus, total_balance,
-        note, banner_path, status, priority, branch_id, 0, sync_status || null
+        safe(group_code),
+        safe(plan_name),
+        safe(plan_type),
+        safe(description),
+        safe(amount_per_inst),
+        safe(gold_weight),
+        safe(jewellery_type),
+        safe(duration),
+        safe(no_of_members),
+        safe(start_no),
+        is_flexible ? 1 : 0,
+        is_gold_scheme ? 1 : 0,
+        safe(bonus),
+        safe(total_balance),
+        safe(note),
+        safe(banner_path),
+        safe(status),
+        safe(priority),
+        safe(branch_id),
+        0,
+        safe(sync_status)
       ]
     );
 
-
     const schemeGroupId = result.insertId;
 
-    // Insert benefits
+    // ✅ benefits
     for (const benefit of benefits) {
-      if (benefit) {
+      if (benefit?.trim()) {
         await conn.execute(
-          `INSERT INTO scheme_group_benefits (scheme_group_id, benefit_text) VALUES (?, ?)`,
+          `INSERT INTO scheme_group_benefits (scheme_group_id, benefit_text)
+           VALUES (?, ?)`,
           [schemeGroupId, benefit]
         );
       }
     }
 
-    // Insert terms
+    // ✅ terms
     for (const term of terms) {
-      if (term) {
+      if (term?.trim()) {
         await conn.execute(
-          `INSERT INTO scheme_group_terms (scheme_group_id, term_text) VALUES (?, ?)`,
+          `INSERT INTO scheme_group_terms (scheme_group_id, term_text)
+           VALUES (?, ?)`,
           [schemeGroupId, term]
         );
       }
     }
 
     await conn.commit();
-    res.json({ success: true, id: schemeGroupId });
+    res.json({
+      success: true,
+      id: schemeGroupId,
+      banner: banner_path
+    });
   } catch (err) {
     await conn.rollback();
     console.error("Error creating group:", err);
@@ -156,46 +183,34 @@ export const createGroup = async (req, res) => {
   }
 };
 
+
 // controller
 export const deleteGroup = async (req, res) => {
-  const conn = await db.getConnection();
   try {
     const { id } = req.params;
 
-    await conn.beginTransaction();
-
-    // Get existing record (for banner path)
-    const [existing] = await conn.execute(
-      "SELECT banner_path FROM scheme_groups WHERE id = ?",
+    const [result] = await db.query(
+      "UPDATE scheme_groups SET is_closed = 1 WHERE id = ?",
       [id]
     );
-    if (!existing.length) {
-      return res.status(404).json({ success: false, message: "Plan not found" });
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Plan not found"
+      });
     }
 
-    const bannerPath = existing[0].banner_path;
-
-    // Delete child records
-    await conn.execute("DELETE FROM scheme_group_benefits WHERE scheme_group_id = ?", [id]);
-    await conn.execute("DELETE FROM scheme_group_terms WHERE scheme_group_id = ?", [id]);
-
-    // Delete main record
-    await conn.execute("DELETE FROM scheme_groups WHERE id = ?", [id]);
-
-    await conn.commit();
-
-    // Remove banner file if exists
-    if (bannerPath && fs.existsSync(path.join(process.cwd(), bannerPath))) {
-      fs.unlinkSync(path.join(process.cwd(), bannerPath));
-    }
-
-    res.json({ success: true, message: "Plan deleted successfully" });
+    res.json({
+      success: true,
+      message: "Plan closed successfully"
+    });
   } catch (err) {
-    await conn.rollback();
-    console.error("Error deleting plan:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  } finally {
-    conn.release();
+    console.error("Error closing plan:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 };
 
@@ -204,7 +219,7 @@ export const deleteGroup = async (req, res) => {
 export const getGroupById = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await db.query("SELECT * FROM scheme_groups WHERE id = ?", [id]);
+    const [rows] = await db.query("SELECT *,IFNULL(is_closed, 0) AS is_closed FROM scheme_groups WHERE id = ?", [id]);
 
     if (!rows.length) {
       return res.status(404).json({ success: false, message: "Plan not found" });

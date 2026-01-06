@@ -8,7 +8,7 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { motion } from "framer-motion";
 
@@ -17,101 +17,115 @@ const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 export default function PaymentHistoryDetails() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 🔹 0 = Active, 1 = Closed (default Active)
+  const selectedTab = location.state?.tab ?? 0;
 
   const [userName, setUserName] = useState("");
   const [plans, setPlans] = useState([]);
 
-  const fetchUserHistory = () =>
-    axios.get(`${API}/api/payments/user/${userId}`, {
-      headers: {
-        "x-admin-role":
-          sessionStorage.getItem("is_super_admin") === "1"
-            ? "superadmin"
-            : "admin",
-      },
-    });
-
   useEffect(() => {
-    fetchUserHistory().then((res) => {
-      setUserName(res.data.user?.name ?? "User");
-      setPlans(res.data.plans);
-    });
-  }, []);
+    axios
+      .get(`${API}/api/payments/user/${userId}`, {
+        headers: {
+          "x-admin-role":
+            localStorage.getItem("is_super_admin") === "1"
+              ? "superadmin"
+              : "admin",
+        },
+      })
+      .then((res) => {
+        setUserName(res.data.user?.name ?? "User");
+        setPlans(res.data.plans || []);
+      })
+      .catch(console.error);
+  }, [userId]);
+
+  // 🔹 Filter plans based on incoming tab
+  const filteredPlans =
+    selectedTab === 0
+      ? plans.filter((p) => Number(p.is_closed) === 0)
+      : plans.filter((p) => Number(p.is_closed) === 1);
 
   return (
     <Box
       sx={{
         height: "100vh",
-        background: "linear-gradient(135deg, #26004d, #6a0080, #b30059)",
+        background: "linear-gradient(135deg,#26004d,#6a0080,#b30059)",
         color: "white",
-        p: 3,
+        p: 2,
       }}
     >
       {/* HEADER */}
-      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <IconButton onClick={() => navigate(-1)} sx={{ color: "gold" }}>
           <ArrowBackIosNewIcon />
         </IconButton>
 
-        <Typography variant="h5" sx={{ color: "gold", fontWeight: "bold" }}>
-          {userName}'s Plans
+        <Typography
+          variant="h6"
+          sx={{ color: "gold", fontWeight: "bold" }}
+        >
+          {userName}'s{" "}
+          {selectedTab === 0 ? "Active Plans" : "Closed Plans"}
         </Typography>
       </Box>
 
-      <Card
-        sx={{
-          p: 3,
-          background: "rgba(255,255,255,0.12)",
-          borderRadius: "20px",
-          backdropFilter: "blur(8px)",
-          height: "85vh",
-          overflowY: "auto",
-        }}
-      >
-        {plans.map((p, index) => (
+      {/* PLAN LIST */}
+      <Box sx={{ height: "80vh", overflowY: "auto" }}>
+        {filteredPlans.map((p, index) => (
           <Card
             key={index}
             component={motion.div}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             sx={{
-              p: 3,
-              mb: 3,
+              p: 2,
+              mb: 2,
               background: "rgba(0,0,0,0.3)",
-              borderRadius: "18px",
-              border: "1px solid rgba(255,215,0,0.25)",
-              color: "white",
+              borderRadius: "16px",
+              border: "1px solid rgba(255,215,0,0.3)",
             }}
           >
-            <Typography variant="h6" sx={{ color: "gold" }}>
+            <Typography sx={{ color: "gold", fontWeight: "bold" }}>
               Member No: {p.member_no}
             </Typography>
 
-            <Typography>Group ID: {p.group_id}</Typography>
-            <Typography>Status: {p.status}</Typography>
-            <Typography>Joined: {p.join_date}</Typography>
+            <Typography variant="body2">
+              Joined: {p.join_date}
+            </Typography>
 
             <Divider sx={{ my: 1 }} />
 
             <Typography>
-              Installments Paid:{" "}
-              <b style={{ color: "#4CAF50" }}>{p.installments.paid}</b> /{" "}
-              {p.installments.total_inst}
+              Paid:{" "}
+              <b style={{ color: "#4CAF50" }}>
+                {p.installments?.paid ?? 0}
+              </b>
             </Typography>
 
             <Typography>
               Pending:{" "}
-              <b style={{ color: "#FF5252" }}>{p.installments.pending}</b>
+              <b style={{ color: "#FF5252" }}>
+                {p.installments?.pending ?? 0}
+              </b>
             </Typography>
 
             <Chip
-              label={p.installments.pending === 0 ? "Completed" : "Active Plan"}
-              color={p.installments.pending === 0 ? "success" : "warning"}
-              sx={{ mt: 2 }}
+              label={selectedTab === 0 ? "ACTIVE" : "CLOSED"}
+              color={selectedTab === 0 ? "warning" : "success"}
+              sx={{ mt: 1 }}
             />
           </Card>
         ))}
-      </Card>
+
+        {filteredPlans.length === 0 && (
+          <Typography align="center" sx={{ mt: 5, opacity: 0.7 }}>
+            No plans found
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }

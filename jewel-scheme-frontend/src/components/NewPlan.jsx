@@ -38,9 +38,8 @@ const NewPlan = ({ onBack }) => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const userRole = (sessionStorage.getItem("role") || "").toLowerCase();
+  const userRole = (localStorage.getItem("role") || "").toLowerCase();
 
- 
 
   // 🔹 join handler
   const handleJoinNow = (planId) => {
@@ -106,6 +105,21 @@ const NewPlan = ({ onBack }) => {
       alert("Select exactly 1 plan to edit.");
     }
   };
+
+  const getBannerUrl = (plan) => {
+    if (!plan?.banner_path) {
+      return `${process.env.PUBLIC_URL}/plan-placeholder.jpg`;
+    }
+
+    // already full URL
+    if (plan.banner_path.startsWith("http")) {
+      return plan.banner_path;
+    }
+
+    // relative path from backend
+    return `${API_BASE_URL}${plan.banner_path}`;
+  };
+
 
   return (
     <Box
@@ -233,16 +247,21 @@ const NewPlan = ({ onBack }) => {
                         }}
                       >
                         <motion.img
-                          src={`${process.env.REACT_APP_API_URL}${plan.banner}`}
+                          src={getBannerUrl(plan)}
                           alt={`${plan.plan_name} Banner`}
                           style={{
                             width: "100%",
                             maxHeight: 220,
                             objectFit: "cover",
                           }}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `${process.env.PUBLIC_URL}/plan-placeholder.jpg`;
+                          }}
                           whileHover={{ scale: 1.05 }}
                           transition={{ duration: 0.4 }}
                         />
+
                         {/* shimmer overlay */}
                         <Box
                           sx={{

@@ -110,23 +110,38 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     if (field === "groupCode" || field === "planName") {
       value = value?.toUpperCase();
     }
-    setPlanData(prev => {
-      let updated = { ...prev, [field]: value };
 
-      const amt = field === 'amountPerInst' ? value : prev.amountPerInst;
-      const dur = field === 'duration' ? value : prev.duration;
-
-      if (amt && dur) {
-        const totalBalance = parseFloat(amt) * parseInt(dur);
-        updated.totalBalance = totalBalance;
-
-        if (goldRate > 0) {
-          updated.goldWeight = (totalBalance / goldRate).toFixed(3);
-        }
-      }
-      return updated;
-    });
+    setPlanData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
+
+  useEffect(() => {
+    const amt = Number(planData.amountPerInst);
+    const dur = Number(planData.duration);
+    const rate = Number(goldRate);
+
+    if (amt <= 0 || dur <= 0 || rate <= 0) {
+      setPlanData(prev => ({
+        ...prev,
+        totalBalance: 0,
+        goldWeight: ""
+      }));
+      return;
+    }
+
+    const totalBalance = amt * dur;
+    const goldWeight = (totalBalance / rate).toFixed(3);
+
+    setPlanData(prev => ({
+      ...prev,
+      totalBalance,
+      goldWeight
+    }));
+  }, [planData.amountPerInst, planData.duration, goldRate]);
+
+
 
   const handleBenefitChange = (index, value) => {
     const newBenefits = [...planData.benefits];
@@ -134,30 +149,16 @@ const CreateNewPlan = ({ onCreatePlan }) => {
     setPlanData(prev => ({ ...prev, benefits: newBenefits }));
   };
 
-  const handleBannerUpload = async (e) => {
+  const handleBannerUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    try {
-      const formData = new FormData();
-      formData.append("banner", file);
-
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/groups`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      if (res.data.success) {
-        setPlanData(prev => ({ ...prev, banner: res.data.url }));
-      } else {
-        alert("Image upload failed: " + res.data.message);
-      }
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      alert("Error uploading image: " + err.message);
-    }
+    setPlanData(prev => ({
+      ...prev,
+      banner: file
+    }));
   };
+
 
   const addBenefit = () => {
     setPlanData(prev => ({ ...prev, benefits: [...prev.benefits, ''] }));
@@ -170,9 +171,15 @@ const CreateNewPlan = ({ onCreatePlan }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const formData = new FormData();
-      formData.append("banner", planData.banner);
+
+      // ✅ append banner ONLY if it is a File
+      if (planData.banner instanceof File) {
+        formData.append("banner", planData.banner);
+      }
+
       formData.append("group_code", planData.groupCode);
       formData.append("plan_name", planData.planName);
       formData.append("plan_type", planData.planType);
@@ -182,63 +189,47 @@ const CreateNewPlan = ({ onCreatePlan }) => {
       formData.append("jewellery_type", planData.jewelleryType);
       formData.append("duration", planData.duration);
       formData.append("no_of_members", planData.noOfMembers);
-      formData.append("is_flexible", planData.isFlexible);
+      formData.append("is_flexible", planData.isFlexible ? 1 : 0);
       formData.append("is_gold_scheme", 1);
       formData.append("bonus", planData.bonus);
       formData.append("total_balance", planData.totalBalance);
-      formData.append("note", planData.note);
+      formData.append("note", planData.note || "");
       formData.append("status", planData.status);
       formData.append("priority", planData.priority);
       formData.append("branch_id", 1);
       formData.append("sync_status", "");
 
-      if (planData.banner instanceof File) {
-        formData.append("banner", planData.banner);
-      } else {
-        formData.append("banner", DEFAULT_BANNER);
-      }
+      planData.benefits?.forEach((b, i) =>
+        formData.append(`benefits[${i}]`, b)
+      );
+      planData.terms?.forEach((t, i) =>
+        formData.append(`terms[${i}]`, t)
+      );
 
-      planData.benefits?.forEach((b, i) => formData.append(`benefits[${i}]`, b));
-      planData.terms?.forEach((t, i) => formData.append(`terms[${i}]`, t));
+      const url = id
+        ? `${process.env.REACT_APP_API_URL}/api/scheme-groups/${id}`
+        : `${process.env.REACT_APP_API_URL}/api/scheme-groups`;
 
-      let res;
-      if (id) {
-        res = await axios.put(
-          `${process.env.REACT_APP_API_URL}/api/scheme-groups/${id}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-      } else {
-        res = await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/scheme-groups`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-      }
+      const res = id
+        ? await axios.put(url, formData)
+        : await axios.post(url, formData);
 
-      if (res.data.success) {
-        setSnackbar({
-          open: true,
-          message: id ? "Plan updated successfully!" : "Plan created successfully!",
-          severity: "success",
-        });
-        if (!id) handleReset();
-      } else {
-        setSnackbar({
-          open: true,
-          message: "Failed: " + res.data.message,
-          severity: "error",
-        });
-      }
-    } catch (err) {
-      console.error("Error saving plan:", err);
       setSnackbar({
         open: true,
-        message: "Error saving plan: " + err.message,
+        message: id ? "Plan updated successfully!" : "Plan created successfully!",
+        severity: "success",
+      });
+
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: err.message,
         severity: "error",
       });
     }
   };
+
 
   const handleReset = () => {
     setPlanData({

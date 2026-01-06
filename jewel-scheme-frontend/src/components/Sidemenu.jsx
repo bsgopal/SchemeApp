@@ -20,15 +20,15 @@ import CallIcon from "@mui/icons-material/Call";
 import NewReleasesIcon from "@mui/icons-material/NewReleases";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import logo from "./logo.png";
+import logo from "./renic_logo.png";
 
 function Sidemenu({ open, onClose }) {
   const navigate = useNavigate();
-  const role = sessionStorage.getItem("role");
+  const role = localStorage.getItem("role");
   const isLoggedIn = !!role;
 
   const handleLogout = () => {
-    sessionStorage.clear();
+    localStorage.clear();
     navigate("/login");
     onClose();
   };
@@ -51,7 +51,7 @@ function Sidemenu({ open, onClose }) {
         {
           text: "Payment History",
           icon: <HistoryIcon />,
-          action: () => navigate("/paymenthistory"),
+          action: () => navigate("/payment-history"),
         },
       ]
       : [
@@ -152,7 +152,7 @@ function Sidemenu({ open, onClose }) {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            height: 140,
+            height: 150,
             background:
               "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,240,200,0.1))",
             backdropFilter: "blur(8px)",
@@ -166,7 +166,7 @@ function Sidemenu({ open, onClose }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6 }}
             style={{
-              height: 300,
+              height: 185,
               width: "auto",
               objectFit: "contain",
             }}

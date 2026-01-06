@@ -3,29 +3,36 @@ import {
   getNewArrivals,
   addNewArrival,
   updateNewArrival,
-  deleteNewArrival,
-  uploadNewArrivalImage
+  deleteNewArrival
 } from "../controllers/newArrivalsController.js";
+
+import createUpload from "../middlewares/upload.js";
 
 const router = express.Router();
 
-router.post("/upload", uploadNewArrivalImage, (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+// 🔥 upload middleware
+const uploadNewArrivals = createUpload("newarrivals");
 
-  const url = `/uploads/newarrivals/${req.file.filename}`;
-  res.json({ url });
-});
+// -------------------- ROUTES --------------------
 
-// GET all
+// GET all new arrivals
 router.get("/", getNewArrivals);
 
-// Add arrival (supports both image upload + image_url)
-router.post("/", uploadNewArrivalImage, addNewArrival);
+// ADD new arrival (image optional)
+router.post(
+  "/",
+  uploadNewArrivals.single("image"),
+  addNewArrival
+);
 
-// Update
-router.put("/:id", uploadNewArrivalImage, updateNewArrival);
+// UPDATE new arrival
+router.put(
+  "/:id",
+  uploadNewArrivals.single("image"),
+  updateNewArrival
+);
 
-// Delete
+// DELETE new arrival
 router.delete("/:id", deleteNewArrival);
 
 export default router;

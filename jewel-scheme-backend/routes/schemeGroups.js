@@ -1,25 +1,42 @@
 import express from "express";
-import { getAllGroups, createGroup, deleteGroup,getGroupById, updateGroup  } from "../controllers/schemeGroupsController.js";
-  import multer from "multer";
-  
+import {
+  getAllGroups,
+  createGroup,
+  deleteGroup,
+  getGroupById,
+  updateGroup
+} from "../controllers/schemeGroupsController.js";
+
+import createUpload from "../middlewares/upload.js";
 
 const router = express.Router();
 
-// ✅ Configure multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // folder where images will be stored
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
+// ✅ Upload middleware for new plans
+const uploadNewPlans = createUpload("newplans");
 
-const upload = multer({ storage });
+// ---------------- ROUTES ----------------
 
+// GET all groups
 router.get("/", getAllGroups);
+
+// GET group by ID
 router.get("/:id", getGroupById);
-router.post("/", upload.single("banner"),createGroup);
+
+// CREATE new plan (banner upload)
+router.post(
+  "/",
+  uploadNewPlans.single("banner"),
+  createGroup
+);
+
+// UPDATE plan (banner optional)
+router.put(
+  "/:id",
+  uploadNewPlans.single("banner"),
+  updateGroup
+);
+
+// DELETE plan
 router.delete("/:id", deleteGroup);
-router.put("/:id", upload.single("banner"), updateGroup);
+
 export default router;

@@ -60,7 +60,7 @@ const PaymentPage = () => {
   // 🔹 Fetch User Role
   // ---------------------------------------------
   useEffect(() => {
-    const role = sessionStorage.getItem("role") || "user";
+    const role = localStorage.getItem("role") || "user";
 
     setUserRole(role);
   }, []);
@@ -79,7 +79,7 @@ const PaymentPage = () => {
   const handlePayment = async (mode_primary) => {
     setIsLoading(true);
     try {
-      const user_id = sessionStorage.getItem("userId");
+      const user_id = localStorage.getItem("userId");
 
       if (!plan || !type) throw new Error("Missing plan or payment type!");
 

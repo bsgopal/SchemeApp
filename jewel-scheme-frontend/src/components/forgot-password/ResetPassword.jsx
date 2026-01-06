@@ -82,7 +82,7 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
 
   const handleReset = async () => {
-    const userId = sessionStorage.getItem("resetUserId");
+    const userId = localStorage.getItem("resetUserId");
     if (!userId) return setError("Session expired.");
 
     if (pwd !== confirm) return setError("Passwords do not match.");
@@ -94,7 +94,7 @@ export default function ResetPassword() {
       );
 
       if (res.data.success) {
-        sessionStorage.removeItem("resetUserId");
+        localStorage.removeItem("resetUserId");
         navigate("/");
       }
     } catch (err) {

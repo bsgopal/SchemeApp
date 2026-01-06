@@ -14,7 +14,7 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import CloseIcon from "@mui/icons-material/Close";
-import logo from "./logo_renic.png";
+import logo from "./renic_logo.png";
 import bgImg from "./images/image2.png"; // Premium background image
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -91,8 +91,8 @@ function Login() {
   const handleCreateAccount = () => navigate("/CreateAccount");
 
   const handleSkipLogin = () => {
-    // You can set guest user data in sessionStorage if needed
-    sessionStorage.setItem("isGuest", "true");
+    // You can set guest user data in localStorage if needed
+    localStorage.setItem("isGuest", "true");
     navigate("/Home");
   };
 
@@ -105,14 +105,14 @@ function Login() {
       });
       if (res.data.success) {
         const user = res.data.user;
-        sessionStorage.setItem("userId", user.id);
-        sessionStorage.setItem("mobile", user.mobile);
-        sessionStorage.setItem("name", user.name);
-        sessionStorage.setItem("title", user.title);
-        sessionStorage.setItem("role", user.role);
-        sessionStorage.setItem("email", user.email);
-        sessionStorage.setItem("is_super_admin", user.role === "SuperAdmin" ? "1" : "0");
-        sessionStorage.setItem("isGuest", "false");
+        localStorage.setItem("userId", user.id);
+        localStorage.setItem("mobile", user.mobile);
+        localStorage.setItem("name", user.name);
+        localStorage.setItem("title", user.title);
+        localStorage.setItem("role", user.role);
+        localStorage.setItem("email", user.email);
+        localStorage.setItem("is_super_admin", user.role === "SuperAdmin" ? "1" : "0");
+        localStorage.setItem("isGuest", "false");
         navigate("/Home");
       }
     } catch (err) {
@@ -147,21 +147,41 @@ function Login() {
       <GoldShimmer />
 
       {/* Logo in top right corner */}
-      <motion.img
-        src={logo}
-        alt="Logo"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         style={{
           position: "absolute",
-          top: "calc(env(safe-area-inset-top) + 10px)",
-          right: 10,
-          height: 120,
-          zIndex: 3,
+          top: "calc(env(safe-area-inset-top) + 12px)",
+          left: "50%",                     // ✅ center horizontally
+          transform: "translateX(-50%)",   // ✅ exact centering
+
+          padding: "10px 16px",
+          borderRadius: 16,
+
+          /* VISIBILITY / GLASS EFFECT */
+          background: "rgba(255, 255, 255, 0.95)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
+
+          zIndex: 10,
+          pointerEvents: "none"             // ✅ avoids blocking menu clicks
         }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 100, delay: 0.3 }}
-        onClick={handleSkipLogin} // Optional: make logo clickable to skip login
-      />
+      >
+        <img
+          src={logo}
+          alt="RENIC Logo"
+          style={{
+            height: 38,                     // 🔥 perfect size
+            width: "auto",
+            display: "block",
+            filter: "contrast(1.2)"
+          }}
+        />
+      </motion.div>
+
+
 
       {/* Skip Login Button */}
       <Button
@@ -169,7 +189,7 @@ function Login() {
         onClick={handleSkipLogin}
         sx={{
           position: "absolute",
-          top: "calc(env(safe-area-inset-top) + 10px)", 
+          top: "calc(env(safe-area-inset-top) + 10px)",
           left: 20,
           zIndex: 3,
           color: "white",

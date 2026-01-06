@@ -28,12 +28,32 @@ const MyPlans = () => {
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const [plans, setPlans] = useState([]);
+  // console.log(plans.map(p => p.is_closed));
+
+  const activeplans = Array.isArray(plans)
+    ? plans.filter(p => Number(p?.is_closed) === 0)
+    : [];
+
+  const closedplans = Array.isArray(plans)
+    ? plans.filter(p => Number(p?.is_closed) === 1)
+    : [];
+  // console.log(activeplans,closedplans)
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "info",
   });
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.12,
+      },
+    },
+  };
+
 
   const handleCloseSnackbar = () => setSnackbar((s) => ({ ...s, open: false }));
 
@@ -41,7 +61,7 @@ const MyPlans = () => {
     const fetchPlans = async () => {
       setLoading(true);
       try {
-        const userId = sessionStorage.getItem("userId");
+        const userId = localStorage.getItem("userId");
         const res = await axios.get(`${API_BASE_URL}/api/my-plans/${userId}`);
         const fetched = Array.isArray(res.data)
           ? res.data
@@ -64,13 +84,20 @@ const MyPlans = () => {
     fetchPlans();
   }, [API_BASE_URL]);
 
-  const getPlanImage = (plan) =>
-    plan?.image || plan?.image_url || `${process.env.PUBLIC_URL}/plan-placeholder.jpg`;
+  const getPlanImage = (plan) => {
+    if (!plan?.banner_path) {
+      return `${process.env.PUBLIC_URL}/plan-placeholder.jpg`;
+    }
 
-  const containerVariants = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.08, delayChildren: 0.12 } },
+    // already absolute URL
+    if (plan.banner_path.startsWith("http")) {
+      return plan.banner_path;
+    }
+
+    // relative path from backend
+    return `${API_BASE_URL}${plan.banner_path}`;
   };
+
 
   const itemVariants = {
     hidden: { opacity: 0, y: 24 },
@@ -224,7 +251,7 @@ const MyPlans = () => {
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="visible">
               <Grid container spacing={{ xs: 2, sm: 3 }} alignItems="stretch">
-                {plans.map((plan) => {
+                {activeplans.map((plan) => {
                   const id = plan.id || plan._id;
                   const imageSrc = getPlanImage(plan);
                   const dateValue = plan.start_date || plan.join_date || null;
@@ -278,7 +305,7 @@ const MyPlans = () => {
                               component="img"
                               height="180"
                               image={imageSrc}
-                              alt={plan.plan_name || plan.scheme_name || "Plan Image"}
+                              alt={plan.plan_name || "Plan Image"}
                               onError={(e) => {
                                 e.currentTarget.onerror = null;
                                 e.currentTarget.src = `${process.env.PUBLIC_URL}/plan-placeholder.jpg`;
@@ -289,6 +316,7 @@ const MyPlans = () => {
                                 borderBottom: "1px solid rgba(255, 215, 0, 0.3)",
                               }}
                             />
+
                             <Box
                               sx={{
                                 background: "linear-gradient(90deg, #4b0066 0%, #1a001f 100%)",
@@ -391,6 +419,106 @@ const MyPlans = () => {
                   );
                 })}
               </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <motion.div whileHover={{ scale: 1.05 }}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      borderRadius: 3,
+                      border: "2px dashed #FFD700",
+                      background: "rgba(255,215,0,0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => navigate("/newplan")}
+                  >
+                    <CardContent sx={{ textAlign: "center" }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ color: "#FFD700", fontWeight: 700 }}
+                      >
+                        + Join New Plan
+                      </Typography>
+
+                      <Typography variant="body2" sx={{ mt: 1, color: "#f5e9ff" }}>
+                        Explore latest available schemes
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+
+              {closedplans.length > 0 && (
+                <Box sx={{ mt: 5 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: "#FFD700",
+                      fontWeight: 700,
+                      mb: 2,
+                      textAlign: "center"
+                    }}
+                  >
+                    Closed Plans (History)
+                  </Typography>
+
+                  <Paper
+                    sx={{
+                      p: 2,
+                      background: "rgba(0,0,0,0.4)",
+                      border: "1px solid rgba(255,215,0,0.3)",
+                      borderRadius: 3
+                    }}
+                  >
+                    {closedplans.map(plan => (
+                      <Box
+                        key={plan.id}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          p: 1.5,
+                          mb: 1,
+                          borderRadius: 2,
+                          background: "rgba(255,255,255,0.05)",
+                          cursor: "pointer",
+                          "&:hover": {
+                            background: "rgba(255,215,0,0.12)"
+                          }
+                        }}
+                        onClick={() =>
+                          navigate(`/plan-details/${plan.id}`, {
+                            state: {
+                              plan,
+                              membership_id: plan.id,
+                              group_id: plan.group_id,
+                              readOnly: true // 🔒 important flag
+                            }
+                          })
+                        }
+                      >
+                        <Typography sx={{ color: "#FFD700", fontWeight: 600 }}>
+                          {plan.plan_name}
+                        </Typography>
+
+                        <Typography
+                          sx={{
+                            color: "#ff5252",
+                            fontSize: 13,
+                            fontWeight: 700
+                          }}
+                        >
+                          CLOSED
+                        </Typography>
+                      </Box>
+                    ))}
+
+                  </Paper>
+                </Box>
+              )}
+
             </motion.div>
           )}
         </Container>

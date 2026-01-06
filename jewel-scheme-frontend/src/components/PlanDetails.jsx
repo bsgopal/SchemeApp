@@ -24,7 +24,6 @@ const PlanDetails = () => {
   const location = useLocation();
 
   const plan = location.state?.plan || {};
-
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showInstallments, setShowInstallments] = useState(false);
@@ -184,7 +183,7 @@ const PlanDetails = () => {
       </Paper>
 
       {/* 🔶 Upcoming Payment — ONLY if at least 1 payment is done */}
-      {hasPaid && (
+      {hasPaid && !plan.is_closed &&(
         <>
           <Typography
             variant="h6"

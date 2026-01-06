@@ -16,7 +16,7 @@ import PlanTab from "./PlanTab";
 import PassbookCard from "./PassbookCard";
 
 export default function Wallet() {
-  const userId = sessionStorage.getItem("userId");
+  const userId = localStorage.getItem("userId");
   const API = process.env.REACT_APP_API_URL;
 
   // ================= STATE =================
