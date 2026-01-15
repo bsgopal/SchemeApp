@@ -1,6 +1,11 @@
 import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET
 
 // ----------------- Helper: Send OTP Email -----------------
 async function sendOtpEmail(toEmail, otp) {
@@ -209,9 +214,12 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ success: false, message: "Invalid mobile or password" });
 
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET);
+
     res.json({
       success: true,
       message: "Login successful",
+      token,
       user: {
         id: user.id,
         name: user.name,

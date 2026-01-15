@@ -24,7 +24,7 @@ import paymentRoutes from "./routes/paymentHistoryRoutes.js";
 import forgotPasswordRoutes from "./routes/forgotPasswordRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
-
+import offerRoutes from "./routes/offers.routes.js";
 
 
 const app = express();
@@ -52,6 +52,8 @@ pool.getConnection()
   });
 
 // ✅ Routes
+app.use("/api/offers", offerRoutes);
+
 app.use("/api/agent-assignments", agentAssignmentsRoutes);
 app.use("/api/agents", agentsRoutes);
 app.use("/api/audit-logs", auditLogsRoutes);

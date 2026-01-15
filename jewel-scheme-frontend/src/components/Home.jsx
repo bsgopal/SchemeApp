@@ -98,7 +98,7 @@ const Home = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [goldRate, setGoldRate] = useState(null);
   const [silverRate, setSilverRate] = useState(null);
-
+  const [guest, setGuest] = useState(localStorage.getItem("isGuest") === "true");
   const navigate = useNavigate();
 
 
@@ -168,9 +168,13 @@ const Home = () => {
   };
 
   const handleFeatureClick = (feature) => {
-    if (!mobile) setOpenDialog(true);
-    else if (feature.route) navigate(feature.route);
+    if (guest) {
+      setOpenDialog(true);
+    } else if (feature.route) {
+      navigate(feature.route);
+    }
   };
+
 
   return (
     <Box sx={{
@@ -389,11 +393,14 @@ const Home = () => {
           <Typography variant="caption" color="#eb350dff" display="block" mt={1}>
             {dateTime.toLocaleDateString()} {dateTime.toLocaleTimeString()}
           </Typography>
-          {mobile && (
-            <Typography variant="subtitle1" fontWeight="bold" color="#FFD700" mt={1}>
-              {title}.{name}-{mobile}
-            </Typography>
-          )}
+          <Typography variant="subtitle1" fontWeight="bold" color="#FFD700" mt={1}>
+            {guest
+              ? "Please Login and use"
+              : mobile
+                ? `${title}.${name}-${mobile}`
+                : ""}
+          </Typography>
+
         </Box>
 
         {/* New Arrivals */}

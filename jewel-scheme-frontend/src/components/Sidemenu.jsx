@@ -22,16 +22,16 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import logo from "./renic_logo.png";
 
-function Sidemenu({ open, onClose }) {
+function Sidemenu({ open, onClose, Logout = () => {} }) {
   const navigate = useNavigate();
   const role = localStorage.getItem("role");
   const isLoggedIn = !!role;
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-    onClose();
-  };
+  localStorage.clear();
+  navigate("/", { replace: true });
+};
+
 
   const menuItems = [
     { text: "Home", icon: <HomeIcon />, action: () => navigate("/") },
@@ -258,7 +258,7 @@ function Sidemenu({ open, onClose }) {
                 transform: "scale(1.05)",
               },
             }}
-            onClick={!isLoggedIn ? () => navigate("/login") : handleLogout}
+            onClick={!isLoggedIn ? () => navigate("/") : handleLogout}
           >
             {!isLoggedIn ? "Sign in / Sign up" : "Logout"}
           </Box>

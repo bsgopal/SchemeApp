@@ -81,17 +81,17 @@ function GoldShimmer() {
   );
 }
 
-function Login() {
+function Login({ setIsLoggedIn }) {
   const navigate = useNavigate();
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+
   const handleCreateAccount = () => navigate("/CreateAccount");
 
   const handleSkipLogin = () => {
-    // You can set guest user data in localStorage if needed
     localStorage.setItem("isGuest", "true");
     navigate("/Home");
   };
@@ -103,6 +103,12 @@ function Login() {
         mobile,
         password,
       });
+      const token = res.data.token;
+      if(!token){
+        setErrorMessage("Login failed. you are not authorized.");
+        return;
+      }
+      localStorage.setItem("token", token);
       if (res.data.success) {
         const user = res.data.user;
         localStorage.setItem("userId", user.id);
@@ -114,6 +120,8 @@ function Login() {
         localStorage.setItem("is_super_admin", user.role === "SuperAdmin" ? "1" : "0");
         localStorage.setItem("isGuest", "false");
         navigate("/Home");
+        setIsLoggedIn(true);
+        localStorage.removeItem("isGuest");
       }
     } catch (err) {
       if (err.response) setErrorMessage(err.response.data.message || "Login failed.");
@@ -154,7 +162,7 @@ function Login() {
         style={{
           position: "absolute",
           top: "calc(env(safe-area-inset-top) + 12px)",
-          left: "50%",                     // ✅ center horizontally
+          left: "70%",                     // ✅ center horizontally
           transform: "translateX(-50%)",   // ✅ exact centering
 
           padding: "10px 16px",
