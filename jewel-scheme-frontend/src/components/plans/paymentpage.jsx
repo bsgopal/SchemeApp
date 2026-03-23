@@ -151,7 +151,6 @@ const PaymentPage = () => {
         showSnackbar("✅ Installment paid successfully!", "success");
       }
 
-      // Redirect after short delay
       setTimeout(() => navigate("/my-plans"), 2000);
     } catch (err) {
       console.error("❌ Payment Error:", err);
@@ -210,7 +209,7 @@ const PaymentPage = () => {
       {/* 🔙 Back Button */}
       <IconButton
         onClick={() => navigate(-1)}
-        sx={{ position: "absolute", top: 20, left: 20, color: "gold", zIndex: 3 }}
+        sx={{ position: "absolute", top: 20, left: 20, color: "gold", zIndex: 9999 }}
       >
         <ArrowBackIcon />
       </IconButton>

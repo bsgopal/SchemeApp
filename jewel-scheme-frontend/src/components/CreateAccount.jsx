@@ -284,7 +284,7 @@ function CreateAccount() {
           sx={{
             mt: 2,
             borderRadius: 3,
-            backgroundColor: "rgba(11,1,1,0.15)",
+            backgroundColor: "rgba(243, 240, 240, 0.15)",
             px: 0.5,
             py: 0.5,
             border: "1px solid rgba(212,175,55,0.5)",

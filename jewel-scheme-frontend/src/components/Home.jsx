@@ -135,8 +135,10 @@ const Home = () => {
     const fetchRates = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/rates`);
-        setGoldRate(Math.trunc(res.data.goldRate));
-        setSilverRate(Math.trunc(res.data.silverRate));
+
+        setGoldRate(Math.trunc(res.data.data.goldRate));
+
+        setSilverRate(Math.trunc(res.data.data.silverRate));
       } catch (err) {
         console.error("Failed to fetch rates", err);
       }

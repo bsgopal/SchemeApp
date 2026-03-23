@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "586385274546",
+    "project_id": "scheme-app-e168a",
+    "storage_bucket": "scheme-app-e168a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:586385274546:android:b5a406e68f8ceb2c023bab",
+        "android_client_info": {
+          "package_name": "com.jewelscheme.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWtdrO1KKly5SkBeLnEw-cEEkQIyl7s6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

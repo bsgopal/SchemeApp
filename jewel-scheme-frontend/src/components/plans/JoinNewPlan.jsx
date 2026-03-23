@@ -93,16 +93,16 @@ const JoinNewPlan = () => {
 
       // Step 1: Create payment
       const payRes = await axios.post(
-        
+
         `${API_BASE_URL}/api/scheme-payments/payment`,
-        
+
         {
           customer_user_id: userId,
           group_id: selectedPlan?.id,
           amount: selectedPlan?.inst_amount || selectedPlan?.amount_per_inst || 500,
           branch_id: selectedPlan?.branch_id || 1,
         }
-        
+
       );
 
 
@@ -117,14 +117,19 @@ const JoinNewPlan = () => {
         `${API_BASE_URL}/api/scheme-payments/join-after-payment`,
         {
           payment_id: paymentId,
-          customer_user_id: userId,
+          customer_user_id: Number(userId),
           group_id: selectedPlan?.id,
           branch_id: selectedPlan?.branch_id || 1,
         }
       );
 
       if (!joinRes.data.success) {
-        throw new Error("Join failed");
+        setSnackbar({
+          open: true,
+          message: joinRes.data.message || "Join failed ❌",
+          severity: "error",
+        });
+        return;
       }
 
       // Success UI
@@ -145,9 +150,13 @@ const JoinNewPlan = () => {
 
     } catch (err) {
       console.error("❌ JOIN ERROR:", err);
+
+      const backendMsg =
+        err.response?.data?.message || "❌ Failed to join plan";
+
       setSnackbar({
         open: true,
-        message: "❌ Failed to join plan",
+        message: backendMsg,
         severity: "error",
       });
     } finally {

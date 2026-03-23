@@ -63,7 +63,7 @@ export default function AddEditOffer() {
       {/* 🔙 Back */}
       <IconButton
         onClick={() => navigate("/offers")}
-        sx={{ position: "absolute", top: 20, left: 20, color: "gold", zIndex: 3 }}
+        sx={{ position: "absolute", top: 20, left: 20, color: "gold", zIndex: 9999 }}
       >
         <ArrowBackIosNewIcon />
       </IconButton>

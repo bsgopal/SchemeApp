@@ -28,6 +28,12 @@ import OffersPage from "./components/offers/OffersPage";
 import OfferDetails from "./components/offers/OfferDetails";
 import AddEditOffer from "./components/offers/AddEditOffer";
 
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Capacitor } from '@capacitor/core';
+
+
+
+
 const BANNERS = {
   default: "/images/banner1.jpg",
   gold: "/images/gold-banner.jpg",
@@ -44,6 +50,27 @@ function App() {
     if (token) {
       setIsLoggedIn(true);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    // 1️⃣ Ask permission
+    PushNotifications.requestPermissions().then(result => {
+      if (result.receive === 'granted') {
+        PushNotifications.register();
+      }
+    });
+
+    // 2️⃣ Get FCM token
+    PushNotifications.addListener('registration', token => {
+      console.log('🔥 FCM TOKEN:', token.value);
+    });
+
+    // 3️⃣ Error handling
+    PushNotifications.addListener('registrationError', error => {
+      console.error('❌ FCM ERROR:', error);
+    });
   }, []);
 
   const addNewPlan = (newPlanData) => {
@@ -86,7 +113,7 @@ function App() {
 
       {/* PROTECTED */}
       {/* OFFERS */}
-      <Route path="/offers" element={<ProtectedRoute><OffersPage /></ProtectedRoute>} />  
+      <Route path="/offers" element={<ProtectedRoute><OffersPage /></ProtectedRoute>} />
       <Route path="/offers/new" element={<ProtectedRoute><AddEditOffer /></ProtectedRoute>} />
       <Route path="/offers/:id" element={<ProtectedRoute><OfferDetails /></ProtectedRoute>} />
       <Route path="/Home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
